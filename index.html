@@ -9,216 +9,163 @@
 <title>Mitsubishi Klima</title>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
-* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
-:root {
-  --red:   #d0021b;
-  --red2:  #a80016;
-  --bg:    #f0f2f5;
-  --card:  #ffffff;
-  --dark:  #1a1a2e;
-  --text:  #1a1a2e;
-  --sub:   #8a9bb5;
-  --border:#e2e8f0;
-  --blue:  #1565c0;
-  --on:    #2e7d32;
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --red:#cc0018;--red2:#a80013;--bg:#f0f2f5;--card:#fff;
+  --text:#1a1a2e;--sub:#7a8faa;--border:#e2e8f0;
+  --blue:#1565c0;--on:#2e7d32;--heat:#e65100;--cool:#1565c0;
+  --dry:#6a1b9a;--fan:#00695c;--auto:#4527a0;
 }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  background: var(--bg);
-  min-height: 100vh;
-  max-width: 430px;
-  margin: 0 auto;
-  padding-bottom: 80px;
-}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg);max-width:430px;margin:0 auto;min-height:100vh;padding-bottom:64px}
 
-/* ── Top bar ── */
-.topbar {
-  background: var(--red);
-  padding: 50px 20px 16px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.logo-row { display:flex; align-items:center; gap:10px; }
-/* Mitsubishi wordmark - three diamond shapes inline */
-.mits-diamonds { display:flex; gap:2px; align-items:center; }
-.mits-diamonds .d {
-  width:10px; height:16px;
-  background: white;
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-}
-.logo-text { color:white; font-size:13px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; }
-.logo-sub  { color:rgba(255,255,255,.7); font-size:10px; letter-spacing:.8px; }
-.conn-pill {
-  background: rgba(0,0,0,.2); border-radius:20px;
-  padding: 5px 10px; display:flex; align-items:center; gap:6px;
-}
-.conn-dot { width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3); transition:.3s; }
-.conn-dot.ok  { background:#69f0ae; box-shadow:0 0 6px #69f0ae; }
-.conn-dot.err { background:#ff5252; }
-.conn-txt { color:white; font-size:11px; }
+/* ── Topbar ── */
+.topbar{background:var(--red);padding:48px 20px 14px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-txt .name{color:#fff;font-size:13px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase}
+.brand-txt .model{color:rgba(255,255,255,.65);font-size:10px;letter-spacing:.6px}
+.conn-pill{background:rgba(0,0,0,.22);border-radius:20px;padding:5px 10px;display:flex;align-items:center;gap:6px}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);transition:.3s}
+.conn-dot.ok{background:#69f0ae;box-shadow:0 0 6px #69f0ae}
+.conn-dot.err{background:#ff5252}
+.conn-txt{color:#fff;font-size:11px}
 
-/* ── Main card ── */
-.main-card {
-  background: var(--red);
-  padding: 0 16px 20px;
-}
-.temp-circle {
-  background: white;
-  border-radius: 24px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.temps-row {
-  display: flex; gap: 20px; width:100%;
-  margin-bottom: 16px;
-}
-.temp-box {
-  flex:1; text-align:center;
-  background: #f7f9fc; border-radius:16px; padding:14px 8px;
-}
-.temp-box-val { font-size:36px; font-weight:300; color:var(--text); line-height:1; }
-.temp-box-val sup { font-size:16px; color:var(--sub); vertical-align:super; }
-.temp-box-label { font-size:10px; color:var(--sub); letter-spacing:.7px; margin-top:4px; text-transform:uppercase; }
-.temp-divider { width:1px; background:var(--border); align-self:stretch; }
+/* ── Main area ── */
+.main{background:var(--red);padding:0 14px 16px}
+.main-inner{background:#fff;border-radius:22px;padding:18px 16px}
 
-/* Set temp control */
-.settemp-row {
-  display:flex; align-items:center; gap:16px; width:100%;
-}
-.settemp-display { flex:1; text-align:center; }
-.settemp-val { font-size:28px; font-weight:500; color:var(--text); }
-.settemp-label { font-size:10px; color:var(--sub); text-transform:uppercase; letter-spacing:.5px; }
-.temp-btn {
-  width:44px; height:44px; border-radius:50%;
-  border: 2px solid var(--border); background:white;
-  color:var(--red); font-size:24px; font-weight:400; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  box-shadow: 0 2px 8px rgba(0,0,0,.08); transition:.15s;
-}
-.temp-btn:active { background:#fff0f0; transform:scale(.9); }
+/* Temps row */
+.temps{display:flex;gap:10px;margin-bottom:14px}
+.temp-box{flex:1;background:#f7f9fc;border-radius:14px;padding:12px 8px;text-align:center}
+.temp-box .val{font-size:32px;font-weight:300;color:var(--text);line-height:1}
+.temp-box .val sup{font-size:14px;color:var(--sub);vertical-align:super}
+.temp-box .lbl{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-top:3px}
 
-/* Power button */
-.power-section {
-  display:flex; align-items:center; justify-content:center;
-  gap:16px; margin-top:16px; width:100%;
-}
-.power-btn {
-  width:64px; height:64px; border-radius:50%;
-  border: 3px solid var(--border); background: #f7f9fc;
-  cursor:pointer; display:flex; align-items:center; justify-content:center;
-  box-shadow: 0 3px 12px rgba(0,0,0,.1); transition:.2s;
-}
-.power-btn:active { transform:scale(.92); }
-.power-btn.on {
-  border-color: var(--on); background:#e8f5e9;
-  box-shadow: 0 3px 16px rgba(46,125,50,.25);
-}
-.power-icon { font-size:28px; }
-.power-info { text-align:center; }
-.power-status-txt { font-size:22px; font-weight:700; color:var(--text); }
-.power-status-txt.on { color:var(--on); }
-.mode-chip {
-  display:inline-block; margin-top:4px;
-  background:var(--border); border-radius:20px;
-  padding:3px 10px; font-size:12px; color:var(--sub); font-weight:500;
-}
-.mode-chip.heat { background:#fff3e0; color:#e65100; }
-.mode-chip.cool { background:#e3f2fd; color:#1565c0; }
-.mode-chip.dry  { background:#f3e5f5; color:#6a1b9a; }
-.mode-chip.fan  { background:#e8f5e9; color:#2e7d32; }
-.mode-chip.auto { background:#ede7f6; color:#4527a0; }
+/* Power area */
+.pwr-row{display:flex;align-items:center;gap:14px}
+.pwr-btn{width:60px;height:60px;border-radius:50%;border:2.5px solid var(--border);background:#f7f9fc;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.09);transition:.2s;flex-shrink:0}
+.pwr-btn:active{transform:scale(.92)}
+.pwr-btn.on{border-color:var(--on);background:#e8f5e9;box-shadow:0 2px 14px rgba(46,125,50,.22)}
+.pwr-info{flex:1}
+.pwr-status{font-size:22px;font-weight:700;color:var(--text)}
+.pwr-status.on{color:var(--on)}
+.mode-chip{display:inline-flex;align-items:center;gap:5px;margin-top:3px;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500;background:var(--border);color:var(--sub)}
+.mode-chip.heat{background:#fff3e0;color:var(--heat)}
+.mode-chip.cool{background:#e3f2fd;color:var(--cool)}
+.mode-chip.dry {background:#f3e5f5;color:var(--dry)}
+.mode-chip.fan {background:#e0f2f1;color:var(--fan)}
+.mode-chip.auto{background:#ede7f6;color:var(--auto)}
+.settemp-box{background:#f7f9fc;border-radius:14px;padding:10px 14px;text-align:center;flex-shrink:0}
+.settemp-val{font-size:26px;font-weight:500;color:var(--text);line-height:1}
+.settemp-lbl{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+
+/* Temp buttons */
+.settemp-row{display:flex;align-items:center;justify-content:center;gap:20px;margin-top:12px}
+.tbtn{width:42px;height:42px;border-radius:50%;border:2px solid var(--border);background:#fff;color:var(--red);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 6px rgba(0,0,0,.08);transition:.15s}
+.tbtn:active{background:#fff0f0;transform:scale(.9)}
 
 /* ── Sections ── */
-.section { background:white; margin:10px 12px 0; border-radius:18px; padding:16px; }
-.section-title {
-  font-size:11px; font-weight:700; color:var(--sub);
-  text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;
-}
+.sec{background:#fff;margin:10px 12px 0;border-radius:18px;padding:14px 14px 12px}
+.sec-title{font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
 
-/* Mode buttons */
-.mode-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
-.mode-btn {
-  border-radius:12px; border:1.5px solid var(--border);
-  background:white; padding:10px 2px 8px; cursor:pointer;
-  display:flex; flex-direction:column; align-items:center; gap:3px;
-  font-size:9px; font-weight:700; color:var(--sub); letter-spacing:.3px;
-  transition:.18s;
-}
-.mode-btn .ico { font-size:20px; }
-.mode-btn:active { opacity:.7; }
-.mode-btn.sel-heat { border-color:#e65100; background:#fff8f5; color:#e65100; }
-.mode-btn.sel-cool { border-color:#1565c0; background:#f0f7ff; color:#1565c0; }
-.mode-btn.sel-dry  { border-color:#6a1b9a; background:#fdf5ff; color:#6a1b9a; }
-.mode-btn.sel-fan  { border-color:#2e7d32; background:#f5fff6; color:#2e7d32; }
-.mode-btn.sel-auto { border-color:#4527a0; background:#f8f5ff; color:#4527a0; }
+/* Mode grid */
+.mode-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.mbtn{border-radius:12px;border:1.5px solid var(--border);background:#fff;padding:9px 2px 7px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;font-weight:700;color:var(--sub);letter-spacing:.3px;transition:.18s}
+.mbtn:active{opacity:.7}
+.mbtn svg{width:22px;height:22px}
+.mbtn.sel-heat{border-color:var(--heat);background:#fff8f5;color:var(--heat)}
+.mbtn.sel-cool{border-color:var(--cool);background:#f0f7ff;color:var(--cool)}
+.mbtn.sel-dry {border-color:var(--dry); background:#fdf5ff;color:var(--dry)}
+.mbtn.sel-fan {border-color:var(--fan); background:#f0fffe;color:var(--fan)}
+.mbtn.sel-auto{border-color:var(--auto);background:#f8f5ff;color:var(--auto)}
 
-/* Fan row */
-.pill-row { display:flex; gap:6px; }
-.pill-btn {
-  flex:1; border-radius:10px; border:1.5px solid var(--border);
-  background:white; color:var(--sub); padding:10px 4px;
-  cursor:pointer; font-size:12px; font-weight:600; text-align:center;
-  transition:.18s;
-}
-.pill-btn.sel { border-color:var(--red); background:#fff0f0; color:var(--red); }
-.pill-btn:active { opacity:.7; }
+/* Pills */
+.pills{display:flex;gap:6px}
+.pbtn{flex:1;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--sub);padding:9px 4px;cursor:pointer;font-size:11px;font-weight:600;text-align:center;transition:.18s}
+.pbtn.sel{border-color:var(--red);background:#fff0f0;color:var(--red)}
+.pbtn:active{opacity:.7}
 
 /* Vane */
-.vane-row { display:flex; gap:5px; }
-.vane-btn {
-  flex:1; border-radius:10px; border:1.5px solid var(--border);
-  background:white; color:var(--sub); padding:9px 2px;
-  cursor:pointer; font-size:13px; text-align:center; transition:.18s;
-}
-.vane-btn.sel { border-color:#1565c0; background:#f0f7ff; color:#1565c0; }
-.vane-btn:active { opacity:.7; }
+.vrow{display:flex;gap:5px}
+.vbtn{flex:1;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--sub);padding:9px 2px;cursor:pointer;font-size:12px;text-align:center;transition:.18s}
+.vbtn.sel{border-color:var(--blue);background:#f0f7ff;color:var(--blue)}
+.vbtn:active{opacity:.7}
 
-/* Info row */
-.info-row { display:flex; gap:8px; }
-.info-item {
-  flex:1; background:#f7f9fc; border-radius:12px;
-  padding:12px; text-align:center;
-}
-.info-val { font-size:18px; font-weight:600; color:var(--text); }
-.info-label { font-size:10px; color:var(--sub); text-transform:uppercase; letter-spacing:.5px; margin-top:2px; }
+/* Info */
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ibox{background:#f7f9fc;border-radius:12px;padding:10px 6px;text-align:center}
+.ibox .iv{font-size:14px;font-weight:600;color:var(--text)}
+.ibox .il{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
 
-/* Status bar */
-.statusbar { text-align:center; font-size:11px; color:var(--sub); padding:14px; }
+/* ── Schedule tab ── */
+.tab-content{display:none}
+.tab-content.active{display:block}
 
-/* Bottom nav (MELCloud style) */
-.bottomnav {
-  position:fixed; bottom:0; left:50%; transform:translateX(-50%);
-  width:100%; max-width:430px;
-  background:var(--red2); display:flex;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-.nav-btn {
-  flex:1; padding:10px 4px 8px; border:none; background:transparent;
-  color:rgba(255,255,255,.6); font-size:9px; font-weight:600;
-  letter-spacing:.5px; cursor:pointer; display:flex; flex-direction:column;
-  align-items:center; gap:3px; text-transform:uppercase;
-}
-.nav-btn .nav-ico { font-size:20px; }
-.nav-btn.active { color:white; }
-.nav-btn.active .nav-ico { filter:drop-shadow(0 0 4px rgba(255,255,255,.5)); }
+.sched-header{display:flex;align-items:center;justify-content:space-between;padding:14px 14px 0}
+.sched-title{font-size:17px;font-weight:700;color:var(--text)}
+.add-btn{background:var(--red);color:#fff;border:none;border-radius:50%;width:36px;height:36px;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(200,0,20,.3)}
+
+.sched-list{padding:10px 12px}
+.sched-day-group{margin-bottom:10px}
+.sched-day-label{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;padding-left:2px}
+.sched-item{background:#fff;border-radius:14px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.sched-item.inactive{opacity:.5}
+.sched-left{display:flex;align-items:center;gap:10px}
+.sched-time{font-size:22px;font-weight:300;color:var(--text);line-height:1}
+.sched-info{font-size:12px;color:var(--sub);margin-top:2px}
+.sched-toggle{width:44px;height:24px;border-radius:12px;border:none;background:#e0e0e0;position:relative;cursor:pointer;transition:.25s;flex-shrink:0}
+.sched-toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.sched-toggle.on{background:var(--red)}
+.sched-toggle.on::after{left:23px}
+.del-btn{background:none;border:none;color:var(--sub);font-size:18px;cursor:pointer;padding:4px;margin-left:4px}
+
+.no-sched{text-align:center;padding:40px 20px;color:var(--sub);font-size:14px}
+
+/* ── Add schedule modal ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:24px 24px 0 0;padding:20px 20px 40px;width:100%;max-width:430px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px}
+.modal-section{margin-bottom:14px}
+.modal-label{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}
+.day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.day-btn{border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--sub);padding:8px 2px;cursor:pointer;font-size:10px;font-weight:700;text-align:center;transition:.18s}
+.day-btn.sel{border-color:var(--red);background:#fff0f0;color:var(--red)}
+.time-inp{width:100%;border:1.5px solid var(--border);border-radius:12px;padding:12px;font-size:18px;text-align:center;outline:none;color:var(--text)}
+.time-inp:focus{border-color:var(--red)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sel-inp{border:1.5px solid var(--border);border-radius:12px;padding:11px;font-size:14px;color:var(--text);background:#fff;width:100%;outline:none;-webkit-appearance:none}
+.sel-inp:focus{border-color:var(--red)}
+.temp-inp{border:1.5px solid var(--border);border-radius:12px;padding:11px;font-size:14px;color:var(--text);background:#fff;width:100%;outline:none;text-align:center}
+.temp-inp:focus{border-color:var(--red)}
+.save-btn{width:100%;background:var(--red);color:#fff;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:700;cursor:pointer;margin-top:4px}
+.save-btn:active{opacity:.85}
+.cancel-btn{width:100%;background:var(--border);color:var(--sub);border:none;border-radius:14px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px}
+
+/* ── Bottom nav ── */
+.bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--red2);display:flex;padding-bottom:env(safe-area-inset-bottom,0)}
+.nbtn{flex:1;padding:10px 4px 8px;border:none;background:transparent;color:rgba(255,255,255,.55);font-size:9px;font-weight:700;letter-spacing:.5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;text-transform:uppercase}
+.nbtn.active{color:#fff}
+.nbtn .nico{font-size:19px}
+
+.statusbar{text-align:center;font-size:11px;color:var(--sub);padding:10px 14px}
 </style>
 </head>
 <body>
 
 <!-- Top bar -->
 <div class="topbar">
-  <div class="logo-row">
-    <svg viewBox="0 0 100 88" width="38" height="34" style="flex-shrink:0">
-      <g transform="translate(50,50)" fill="white">
-        <polygon points="0,-44 14,-22 0,0 -14,-22"/>
-        <polygon points="0,-44 14,-22 0,0 -14,-22" transform="rotate(120)"/>
-        <polygon points="0,-44 14,-22 0,0 -14,-22" transform="rotate(240)"/>
+  <div class="brand">
+    <!-- Mitsubishi Electric logo: 3 diamonds with small central gap -->
+    <svg viewBox="18 16 66 62" width="40" height="36">
+      <g transform="translate(50,52)" fill="white">
+        <polygon points="0,-38 11,-19 0,-4 -11,-19"/>
+        <polygon points="0,-38 11,-19 0,-4 -11,-19" transform="rotate(120)"/>
+        <polygon points="0,-38 11,-19 0,-4 -11,-19" transform="rotate(240)"/>
       </g>
     </svg>
-    <div>
-      <div class="logo-text">Mitsubishi Electric</div>
-      <div class="logo-sub">MSZ-FA35VA</div>
+    <div class="brand-txt">
+      <div class="name">Mitsubishi Electric</div>
+      <div class="model">MSZ-FA35VA</div>
     </div>
   </div>
   <div class="conn-pill">
@@ -227,251 +174,428 @@ body {
   </div>
 </div>
 
-<!-- Main card -->
-<div class="main-card">
-  <div class="temp-circle">
+<!-- ══════════ KONTROL TAB ══════════ -->
+<div id="tabControl" class="tab-content active">
+
+<div class="main">
+  <div class="main-inner">
 
     <!-- Sıcaklıklar -->
-    <div class="temps-row">
+    <div class="temps">
       <div class="temp-box">
-        <div class="temp-box-val" id="roomTempVal">--<sup>°</sup></div>
-        <div class="temp-box-label">Oda</div>
+        <div class="val" id="roomVal">--<sup>°</sup></div>
+        <div class="lbl">Oda</div>
       </div>
-      <div class="temp-divider"></div>
       <div class="temp-box">
-        <div class="temp-box-val" id="outTempVal">--<sup>°</sup></div>
-        <div class="temp-box-label">Dış Ortam</div>
+        <div class="val" id="outVal">--<sup>°</sup></div>
+        <div class="lbl">Dış Ortam</div>
       </div>
     </div>
 
-    <!-- Güç & durum -->
-    <div class="power-section">
-      <button class="temp-btn" onclick="changeTemp(-0.5)">−</button>
-      <div style="text-align:center">
-        <button class="power-btn" id="powerBtn" onclick="togglePower()">
-          <span class="power-icon">⏻</span>
-        </button>
+    <!-- Güç + durum + hedef -->
+    <div class="pwr-row">
+      <button class="pwr-btn" id="pwrBtn" onclick="togglePower()">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M12 2v10M6.3 5A8 8 0 1 0 17.7 5"/>
+        </svg>
+      </button>
+      <div class="pwr-info">
+        <div class="pwr-status" id="pwrTxt">KAPALI</div>
+        <div class="mode-chip" id="modeChip">—</div>
       </div>
-      <button class="temp-btn" onclick="changeTemp(+0.5)">+</button>
+      <div class="settemp-box">
+        <div class="settemp-val" id="setVal">22.0°</div>
+        <div class="settemp-lbl">Hedef</div>
+      </div>
     </div>
 
-    <div style="margin-top:10px;text-align:center">
-      <div class="power-status-txt" id="powerTxt">KAPALI</div>
-      <div class="mode-chip" id="modeChip">—</div>
+    <div class="settemp-row">
+      <button class="tbtn" onclick="changeTemp(-0.5)">−</button>
+      <span style="font-size:11px;color:var(--sub)">Sıcaklık Ayarla</span>
+      <button class="tbtn" onclick="changeTemp(+0.5)">+</button>
     </div>
-
-    <!-- Hedef sıcaklık -->
-    <div class="settemp-row" style="margin-top:14px;">
-      <div style="flex:1;font-size:11px;color:var(--sub);text-align:center;text-transform:uppercase;letter-spacing:.5px">Hedef sıcaklık</div>
-      <div class="settemp-val" id="setTempVal">22.0°</div>
-    </div>
-
   </div>
 </div>
 
 <!-- Mod -->
-<div class="section">
-  <div class="section-title">Çalışma Modu</div>
+<div class="sec">
+  <div class="sec-title">Çalışma Modu</div>
   <div class="mode-grid">
-    <button class="mode-btn" id="mHEAT" onclick="setMode('HEAT',1)"><span class="ico">🔥</span>ISITMA</button>
-    <button class="mode-btn" id="mCOOL" onclick="setMode('COOL',3)"><span class="ico">❄️</span>SOĞUTMA</button>
-    <button class="mode-btn" id="mAUTO" onclick="setMode('AUTO',8)"><span class="ico">🔄</span>OTO</button>
-    <button class="mode-btn" id="mDRY"  onclick="setMode('DRY',2)"><span class="ico">💧</span>KURUTMA</button>
-    <button class="mode-btn" id="mFAN"  onclick="setMode('FAN',7)"><span class="ico">💨</span>FAN</button>
+    <button class="mbtn" id="mHEAT" onclick="setMode('HEAT',1)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5.6 5.6l1.5 1.5M16.9 16.9l1.5 1.5M5.6 18.4l1.5-1.5M16.9 7.1l1.5-1.5"/>
+      </svg>ISITMA
+    </button>
+    <button class="mbtn" id="mCOOL" onclick="setMode('COOL',3)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <path d="M12 2v20M2 12h20M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/>
+        <path d="M9 3.5l3 2.5 3-2.5M9 20.5l3-2.5 3 2.5M3.5 9l2.5 3-2.5 3M20.5 9l-2.5 3 2.5 3"/>
+      </svg>SOĞUTMA
+    </button>
+    <button class="mbtn" id="mAUTO" onclick="setMode('AUTO',8)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+        <path d="M3.5 9A9 9 0 0 1 17.7 4.3L23 10M1 14l5.3 5.7A9 9 0 0 0 20.5 15"/>
+      </svg>OTO
+    </button>
+    <button class="mbtn" id="mDRY" onclick="setMode('DRY',2)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2.5C12 2.5 5 10.5 5 15a7 7 0 0 0 14 0c0-4.5-7-12.5-7-12.5z"/>
+      </svg>KURUTMA
+    </button>
+    <button class="mbtn" id="mFAN" onclick="setMode('FAN',7)">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 11.5a.5.5 0 1 0 0 1 .5.5 0 0 0 0-1zm3.8-3.8C13.7 6.8 11.2 7 9.7 8.7 8.5 7 8.3 4.8 9.5 3.2 10.4 2 12 1.8 12.8 2c.8.2-1.2 5.5-1.8 5.5S9 5.4 9 4.5m-4.8 8.3c.9 2.1 3 3.4 5.2 3.2 0 2-1 4-2.9 5-1.7.9-3.5.4-4-.5-.6-.9 4.3-4.5 5-4.2.6.3 1.6 2.7 1.7 3.7m9.6.5c-.9 2.1-3 3.4-5.2 3.2 0 2 1 4 2.9 5 1.7.9 3.5.4 4-.5.6-.9-4.3-4.5-5-4.2-.6.3-1.6 2.7-1.7 3.7"/>
+        <circle cx="12" cy="12" r="1.8" fill="white"/>
+      </svg>FAN
+    </button>
   </div>
 </div>
 
 <!-- Fan -->
-<div class="section">
-  <div class="section-title">Fan Hızı</div>
-  <div class="pill-row">
-    <button class="pill-btn" id="fAUTO"  onclick="setFan('AUTO')">Oto</button>
-    <button class="pill-btn" id="f1"     onclick="setFan('1')">1</button>
-    <button class="pill-btn" id="f2"     onclick="setFan('2')">2</button>
-    <button class="pill-btn" id="f3"     onclick="setFan('3')">3</button>
-    <button class="pill-btn" id="f4"     onclick="setFan('4')">4</button>
-    <button class="pill-btn" id="fQUIET" onclick="setFan('QUIET')">Sessiz</button>
+<div class="sec">
+  <div class="sec-title">Fan Hızı</div>
+  <div class="pills">
+    <button class="pbtn" id="fAUTO"  onclick="setFan('AUTO')">Oto</button>
+    <button class="pbtn" id="f1"     onclick="setFan('1')">1</button>
+    <button class="pbtn" id="f2"     onclick="setFan('2')">2</button>
+    <button class="pbtn" id="f3"     onclick="setFan('3')">3</button>
+    <button class="pbtn" id="f4"     onclick="setFan('4')">4</button>
+    <button class="pbtn" id="fQUIET" onclick="setFan('QUIET')">Sessiz</button>
   </div>
 </div>
 
-<!-- Dikey Yönlendirme -->
-<div class="section">
-  <div class="section-title">Dikey Yönlendirme</div>
-  <div class="vane-row">
-    <button class="vane-btn" id="vAUTO"  onclick="setVane('AUTO')">Oto</button>
-    <button class="vane-btn" id="v1"     onclick="setVane('1')">▲▲</button>
-    <button class="vane-btn" id="v2"     onclick="setVane('2')">▲</button>
-    <button class="vane-btn" id="v3"     onclick="setVane('3')">—</button>
-    <button class="vane-btn" id="v4"     onclick="setVane('4')">▼</button>
-    <button class="vane-btn" id="v5"     onclick="setVane('5')">▼▼</button>
-    <button class="vane-btn" id="vSWING" onclick="setVane('SWING')">↕</button>
+<!-- Dikey yön -->
+<div class="sec">
+  <div class="sec-title">Dikey Yön</div>
+  <div class="vrow">
+    <button class="vbtn" id="vAUTO"  onclick="setVane('AUTO')">Oto</button>
+    <button class="vbtn" id="v1"     onclick="setVane('1')">▲▲</button>
+    <button class="vbtn" id="v2"     onclick="setVane('2')">▲</button>
+    <button class="vbtn" id="v3"     onclick="setVane('3')">—</button>
+    <button class="vbtn" id="v4"     onclick="setVane('4')">▼</button>
+    <button class="vbtn" id="v5"     onclick="setVane('5')">▼▼</button>
+    <button class="vbtn" id="vSWING" onclick="setVane('SWING')">↕</button>
   </div>
 </div>
 
-<!-- Yatay Yönlendirme -->
-<div class="section">
-  <div class="section-title">Yatay Yönlendirme</div>
-  <div class="vane-row">
-    <button class="vane-btn" id="w<<"    onclick="setWVane('<<')">◀◀</button>
-    <button class="vane-btn" id="w<"     onclick="setWVane('<')">◀</button>
-    <button class="vane-btn" id="w|"     onclick="setWVane('|')">●</button>
-    <button class="vane-btn" id="w>"     onclick="setWVane('>')">▶</button>
-    <button class="vane-btn" id="w>>"    onclick="setWVane('>>')">▶▶</button>
-    <button class="vane-btn" id="w<>"    onclick="setWVane('<>')">◀▶</button>
-    <button class="vane-btn" id="wSWING" onclick="setWVane('SWING')">↔</button>
+<!-- Yatay yön -->
+<div class="sec">
+  <div class="sec-title">Yatay Yön</div>
+  <div class="vrow">
+    <button class="vbtn" id="w<<"    onclick="setWVane('<<')">◀◀</button>
+    <button class="vbtn" id="w<"     onclick="setWVane('<')">◀</button>
+    <button class="vbtn" id="w|"     onclick="setWVane('|')">●</button>
+    <button class="vbtn" id="w>"     onclick="setWVane('>')">▶</button>
+    <button class="vbtn" id="w>>"    onclick="setWVane('>>')">▶▶</button>
+    <button class="vbtn" id="w<>"    onclick="setWVane('<>')">◀▶</button>
+    <button class="vbtn" id="wSWING" onclick="setWVane('SWING')">↔</button>
   </div>
 </div>
 
-<!-- Bilgi -->
-<div class="section">
-  <div class="section-title">Cihaz Durumu</div>
-  <div class="info-row">
-    <div class="info-item">
-      <div class="info-val" id="operatingVal">—</div>
-      <div class="info-label">Kompresör</div>
-    </div>
-    <div class="info-item">
-      <div class="info-val" id="iseeVal">—</div>
-      <div class="info-label">i-see Sensör</div>
-    </div>
-    <div class="info-item">
-      <div class="info-val" id="cn105Val">—</div>
-      <div class="info-label">CN105</div>
-    </div>
+<!-- Durum -->
+<div class="sec">
+  <div class="sec-title">Cihaz Durumu</div>
+  <div class="info-grid">
+    <div class="ibox"><div class="iv" id="ivComp">—</div><div class="il">Kompresör</div></div>
+    <div class="ibox"><div class="iv" id="ivIsee">—</div><div class="il">i-see</div></div>
+    <div class="ibox"><div class="iv" id="ivCn">—</div><div class="il">CN105</div></div>
   </div>
 </div>
 
 <div class="statusbar" id="statusBar">Bağlanıyor...</div>
+</div><!-- end tabControl -->
 
-<!-- Bottom nav -->
-<div class="bottomnav">
-  <button class="nav-btn active"><span class="nav-ico">🏠</span>Kontrol</button>
-  <button class="nav-btn"><span class="nav-ico">📊</span>Raporlar</button>
-  <button class="nav-btn"><span class="nav-ico">⚙️</span>Ayarlar</button>
+
+<!-- ══════════ PROGRAM TAB ══════════ -->
+<div id="tabSchedule" class="tab-content">
+  <div class="sched-header">
+    <div class="sched-title">Haftalık Program</div>
+    <button class="add-btn" onclick="openModal()">+</button>
+  </div>
+  <div class="sched-list" id="schedList">
+    <div class="no-sched" id="noSched">Henüz program eklenmedi.<br>+ butonuna bas.</div>
+  </div>
 </div>
 
+
+<!-- ══════════ PROGRAM EKLE MODAL ══════════ -->
+<div class="modal-bg" id="modalBg" onclick="closeModalBg(event)">
+  <div class="modal">
+    <div class="modal-title">Program Ekle</div>
+
+    <div class="modal-section">
+      <div class="modal-label">Günler</div>
+      <div class="day-grid">
+        <button class="day-btn" data-d="1">Pzt</button>
+        <button class="day-btn" data-d="2">Sal</button>
+        <button class="day-btn" data-d="3">Çar</button>
+        <button class="day-btn" data-d="4">Per</button>
+        <button class="day-btn" data-d="5">Cum</button>
+        <button class="day-btn" data-d="6">Cmt</button>
+        <button class="day-btn" data-d="0">Paz</button>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-label">Saat</div>
+      <input type="time" class="time-inp" id="schedTime" value="07:00">
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-label">İşlem</div>
+      <div class="row2">
+        <select class="sel-inp" id="schedPower">
+          <option value="on">Aç</option>
+          <option value="off">Kapat</option>
+        </select>
+        <select class="sel-inp" id="schedMode">
+          <option value="HEAT">Isıtma</option>
+          <option value="COOL">Soğutma</option>
+          <option value="AUTO">Otomatik</option>
+          <option value="DRY">Kurutma</option>
+          <option value="FAN">Fan</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-label">Hedef Sıcaklık</div>
+      <input type="number" class="temp-inp" id="schedTemp" value="22" min="16" max="31" step="0.5">
+    </div>
+
+    <button class="save-btn" onclick="saveSchedule()">Kaydet</button>
+    <button class="cancel-btn" onclick="closeModal()">İptal</button>
+  </div>
+</div>
+
+
+<!-- ══════════ BOTTOM NAV ══════════ -->
+<div class="bottomnav">
+  <button class="nbtn active" id="nb0" onclick="switchTab(0)">
+    <span class="nico">🏠</span>Kontrol
+  </button>
+  <button class="nbtn" id="nb1" onclick="switchTab(1)">
+    <span class="nico">📅</span>Program
+  </button>
+</div>
+
+
 <script>
-const BROKER    = 'wss://broker.emqx.io:8084/mqtt';
-const MAC       = 'D48AFC9E85C8';
-const TOPIC_ST  = 'mits/' + MAC + '/status';
-const TOPIC_CMD = 'mits/' + MAC + '/cmd';
+// ── MQTT ──
+const BROKER='wss://broker.emqx.io:8084/mqtt', MAC='D48AFC9E85C8';
+const T_ST='mits/'+MAC+'/status', T_CMD='mits/'+MAC+'/cmd';
 
-let ac = {
-  power:false, mode:'COOL', setTemp:22, fan:'AUTO',
-  vane:'AUTO', wideVane:'|', roomTemp:null, outTemp:null,
-  iSee:false, operating:false, cn105:false
-};
+let ac={power:false,mode:'COOL',setTemp:22,fan:'AUTO',vane:'AUTO',wideVane:'|',
+        roomTemp:null,outTemp:null,iSee:false,operating:false,cn105:false};
 
-// Per-field command lock (8 sn)
-const locks = {};
-function lock(...fs) { fs.forEach(f => { clearTimeout(locks[f]); locks[f]=setTimeout(()=>delete locks[f],8000); }); }
-function locked(f)  { return !!locks[f]; }
+const locks={};
+function lock(...fs){fs.forEach(f=>{clearTimeout(locks[f]);locks[f]=setTimeout(()=>delete locks[f],8000);})}
+function locked(f){return !!locks[f]}
 
-// MQTT
-const client = mqtt.connect(BROKER, {
-  clientId:'app_'+Math.random().toString(36).slice(2,8),
-  clean:true, reconnectPeriod:3000, connectTimeout:8000
-});
-client.on('connect',   () => { setConn('ok','Bağlı'); client.subscribe(TOPIC_ST); });
-client.on('close',     () => setConn('err','Bağlantı yok'));
-client.on('reconnect', () => setConn('','Bağlanıyor'));
-
-client.on('message', (t, payload) => {
-  try {
-    const d = JSON.parse(payload.toString());
-    if (!locked('power')    && d.power    !=null) ac.power    = d.power===true||d.power==='ON';
-    if (!locked('mode')     && d.mode     !=null) ac.mode     = d.mode;
-    if (!locked('setTemp')  && d.setTemp  !=null) ac.setTemp  = +d.setTemp;
-    if (!locked('fan')      && d.fan      !=null) ac.fan      = d.fan;
-    if (!locked('vane')     && d.vane     !=null) ac.vane     = d.vane;
-    if (!locked('wideVane') && d.wideVane !=null) ac.wideVane = d.wideVane;
-    if (d.roomTemp !=null) ac.roomTemp  = +d.roomTemp;
-    if (d.outTemp  !=null) ac.outTemp   = +d.outTemp;
-    if (d.iSee     !=null) ac.iSee      = d.iSee;
-    if (d.operating!=null) ac.operating = d.operating;
-    if (d.cn105    !=null) ac.cn105     = d.cn105;
+const client=mqtt.connect(BROKER,{clientId:'app_'+Math.random().toString(36).slice(2,8),clean:true,reconnectPeriod:3000,connectTimeout:8000});
+client.on('connect',()=>{setConn('ok','Bağlı');client.subscribe(T_ST);});
+client.on('close',()=>setConn('err','Bağlantı yok'));
+client.on('reconnect',()=>setConn('','Bağlanıyor'));
+client.on('message',(t,p)=>{
+  try{
+    const d=JSON.parse(p.toString());
+    if(!locked('power')    && d.power!=null)    ac.power    =d.power===true||d.power==='ON';
+    if(!locked('mode')     && d.mode!=null)     ac.mode     =d.mode;
+    if(!locked('setTemp')  && d.setTemp!=null)  ac.setTemp  =+d.setTemp;
+    if(!locked('fan')      && d.fan!=null)      ac.fan      =d.fan;
+    if(!locked('vane')     && d.vane!=null)     ac.vane     =d.vane;
+    if(!locked('wideVane') && d.wideVane!=null) ac.wideVane =d.wideVane;
+    if(d.roomTemp!=null) ac.roomTemp =+d.roomTemp;
+    if(d.outTemp!=null)  ac.outTemp  =+d.outTemp;
+    if(d.iSee!=null)     ac.iSee     =d.iSee;
+    if(d.operating!=null)ac.operating=d.operating;
+    if(d.cn105!=null)    ac.cn105    =d.cn105;
     renderAll();
-    setStatus('Güncellendi ' + new Date().toLocaleTimeString('tr-TR'));
-  } catch(e){}
+    setStatus('Güncellendi '+new Date().toLocaleTimeString('tr-TR'));
+  }catch(e){}
 });
+function send(o){lock(...Object.keys(o));client.publish(T_CMD,JSON.stringify(o));}
 
-function send(obj) { lock(...Object.keys(obj)); client.publish(TOPIC_CMD, JSON.stringify(obj)); }
-
-// Actions
-function togglePower() { ac.power=!ac.power; send({power:ac.power}); renderPower(); }
+// ── Actions ──
+function togglePower(){ac.power=!ac.power;send({power:ac.power});renderPower();}
 let tTimer=null;
-function changeTemp(d) {
-  ac.setTemp = Math.round((Math.min(31,Math.max(16,ac.setTemp+d))*2))/2;
-  lock('setTemp'); renderTemp();
-  clearTimeout(tTimer); tTimer=setTimeout(()=>send({setTemp:ac.setTemp}),400);
+function changeTemp(d){
+  ac.setTemp=Math.round((Math.min(31,Math.max(16,ac.setTemp+d))*2))/2;
+  lock('setTemp');renderTemp();
+  clearTimeout(tTimer);tTimer=setTimeout(()=>send({setTemp:ac.setTemp}),400);
 }
-function setMode(s,n)  { ac.mode=s;      send({mode:n});          renderMode(); }
-function setFan(s)     { ac.fan=s;       send({fan:s});            renderFan(); }
-function setVane(v)    { ac.vane=v;      send({vane:v});           renderVane(); }
-function setWVane(v)   { ac.wideVane=v;  send({wideVane:v});       renderWVane(); }
+const MNUM={HEAT:1,COOL:3,AUTO:8,DRY:2,FAN:7};
+function setMode(s,n){ac.mode=s;send({mode:n});renderMode();}
+function setFan(s){ac.fan=s;send({fan:s});renderFan();}
+function setVane(v){ac.vane=v;send({vane:v});renderVane();}
+function setWVane(v){ac.wideVane=v;send({wideVane:v});renderWVane();}
 
-// Render
-function renderAll(){ renderPower();renderTemp();renderMode();renderFan();renderVane();renderWVane();renderInfo(); }
-
-const MCOL  = {HEAT:'heat',COOL:'cool',DRY:'dry',FAN:'fan',AUTO:'auto'};
-const MNAME = {HEAT:'Isıtma 🔥',COOL:'Soğutma ❄️',DRY:'Kurutma 💧',FAN:'Fan 💨',AUTO:'Otomatik 🔄'};
+// ── Render ──
+function renderAll(){renderPower();renderTemp();renderMode();renderFan();renderVane();renderWVane();renderInfo();}
+const MCOL={HEAT:'heat',COOL:'cool',DRY:'dry',FAN:'fan',AUTO:'auto'};
+const MNAME={HEAT:'Isıtma',COOL:'Soğutma',DRY:'Kurutma',FAN:'Fan',AUTO:'Otomatik'};
+const MICO={HEAT:'☀',COOL:'❄',DRY:'💧',FAN:'💨',AUTO:'↻'};
 
 function renderPower(){
-  const btn=document.getElementById('powerBtn');
-  const txt=document.getElementById('powerTxt');
-  const chip=document.getElementById('modeChip');
-  btn.classList.toggle('on',ac.power);
-  txt.textContent = ac.power?'AÇIK':'KAPALI';
-  txt.className   = 'power-status-txt'+(ac.power?' on':'');
-  chip.textContent= MNAME[ac.mode]||ac.mode;
-  chip.className  = 'mode-chip '+(MCOL[ac.mode]||'');
+  const b=document.getElementById('pwrBtn'),t=document.getElementById('pwrTxt'),c=document.getElementById('modeChip');
+  b.classList.toggle('on',ac.power);
+  t.textContent=ac.power?'AÇIK':'KAPALI'; t.className='pwr-status'+(ac.power?' on':'');
+  c.textContent=(MICO[ac.mode]||'')+' '+(MNAME[ac.mode]||ac.mode);
+  c.className='mode-chip '+(MCOL[ac.mode]||'');
 }
 function renderTemp(){
-  const rt=ac.roomTemp&&ac.roomTemp>0?ac.roomTemp.toFixed(1):'--';
-  const ot=ac.outTemp!=null&&ac.outTemp>-50?ac.outTemp.toFixed(1):'--';
-  document.getElementById('roomTempVal').innerHTML = rt+'<sup>°</sup>';
-  document.getElementById('outTempVal').innerHTML  = ot+'<sup>°</sup>';
-  document.getElementById('setTempVal').textContent= ac.setTemp.toFixed(1)+'°';
+  document.getElementById('roomVal').innerHTML=(ac.roomTemp&&ac.roomTemp>0?ac.roomTemp.toFixed(1):'--')+'<sup>°</sup>';
+  document.getElementById('outVal').innerHTML=(ac.outTemp!=null&&ac.outTemp>-50?ac.outTemp.toFixed(1):'--')+'<sup>°</sup>';
+  document.getElementById('setVal').textContent=ac.setTemp.toFixed(1)+'°';
 }
 function renderMode(){
   ['HEAT','COOL','AUTO','DRY','FAN'].forEach(m=>{
-    const el=document.getElementById('m'+m);
-    if(el) el.className='mode-btn'+(ac.mode===m?' sel-'+MCOL[m]:'');
+    const e=document.getElementById('m'+m);if(e)e.className='mbtn'+(ac.mode===m?' sel-'+MCOL[m]:'');
   });
 }
 function renderFan(){
   ['AUTO','1','2','3','4','QUIET'].forEach(f=>{
-    const el=document.getElementById('f'+f);
-    if(el) el.classList.toggle('sel',ac.fan===f);
+    const e=document.getElementById('f'+f);if(e)e.classList.toggle('sel',ac.fan===f);
   });
 }
 function renderVane(){
   ['AUTO','1','2','3','4','5','SWING'].forEach(v=>{
-    const el=document.getElementById('v'+v);
-    if(el) el.classList.toggle('sel',ac.vane===v);
+    const e=document.getElementById('v'+v);if(e)e.classList.toggle('sel',ac.vane===v);
   });
 }
 function renderWVane(){
   ['<<','<','|','>','>>','<>','SWING'].forEach(v=>{
-    const el=document.getElementById('w'+v);
-    if(el) el.classList.toggle('sel',ac.wideVane===v);
+    const e=document.getElementById('w'+v);if(e)e.classList.toggle('sel',ac.wideVane===v);
   });
 }
 function renderInfo(){
-  document.getElementById('operatingVal').textContent = ac.operating?'Çalışıyor':'Beklemede';
-  document.getElementById('operatingVal').style.color = ac.operating?'#e65100':'var(--sub)';
-  document.getElementById('iseeVal').textContent = ac.iSee?'Aktif':'Pasif';
-  document.getElementById('iseeVal').style.color = ac.iSee?'#2e7d32':'var(--sub)';
-  document.getElementById('cn105Val').textContent = ac.cn105?'Bağlı':'Bağlı Değil';
-  document.getElementById('cn105Val').style.color = ac.cn105?'#2e7d32':'#c62828';
+  const c=document.getElementById('ivComp');
+  c.textContent=ac.operating?'Çalışıyor':'Beklemede';c.style.color=ac.operating?'var(--heat)':'var(--sub)';
+  const i=document.getElementById('ivIsee');
+  i.textContent=ac.iSee?'Aktif':'Pasif';i.style.color=ac.iSee?'var(--on)':'var(--sub)';
+  const n=document.getElementById('ivCn');
+  n.textContent=ac.cn105?'Bağlı':'Yok';n.style.color=ac.cn105?'var(--on)':'#c62828';
 }
-function setConn(s,l){
-  document.getElementById('connDot').className='conn-dot '+s;
-  document.getElementById('connTxt').textContent=l;
+function setConn(s,l){document.getElementById('connDot').className='conn-dot '+s;document.getElementById('connTxt').textContent=l;}
+function setStatus(t){document.getElementById('statusBar').textContent=t;}
+
+// ── Tabs ──
+function switchTab(i){
+  document.getElementById('tabControl').classList.toggle('active',i===0);
+  document.getElementById('tabSchedule').classList.toggle('active',i===1);
+  document.getElementById('nb0').classList.toggle('active',i===0);
+  document.getElementById('nb1').classList.toggle('active',i===1);
 }
-function setStatus(t){ document.getElementById('statusBar').textContent=t; }
+
+// ── Schedule ──
+const DAYS=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+let schedules=JSON.parse(localStorage.getItem('klimaSchedules')||'[]');
+let selDays=new Set();
+let lastFired={};
+
+function saveScheds(){localStorage.setItem('klimaSchedules',JSON.stringify(schedules));}
+function renderSchedules(){
+  const list=document.getElementById('schedList');
+  const ns=document.getElementById('noSched');
+  if(!schedules.length){ns.style.display='block';list.innerHTML='';list.appendChild(ns);return;}
+  ns.style.display='none';
+  // Group by day
+  const byDay={};
+  schedules.forEach((s,i)=>{
+    s.days.forEach(d=>{if(!byDay[d])byDay[d]=[];byDay[d].push({s,i});});
+  });
+  list.innerHTML='';
+  // Sort: Mon-Sun (1-6, 0)
+  [1,2,3,4,5,6,0].forEach(d=>{
+    if(!byDay[d])return;
+    const grp=document.createElement('div');grp.className='sched-day-group';
+    grp.innerHTML='<div class="sched-day-label">'+DAYS[d]+'</div>';
+    byDay[d].forEach(({s,i})=>{
+      const pw=s.power==='on'?'Aç':'Kapat';
+      const info=s.power==='on'?pw+' · '+MNAME[s.mode]+' · '+s.temp+'°':'pw';
+      const item=document.createElement('div');
+      item.className='sched-item'+(s.active?'':' inactive');
+      item.innerHTML=`
+        <div class="sched-left">
+          <div class="sched-time">${s.time}</div>
+          <div class="sched-info">${s.power==='on'?'Aç · '+MNAME[s.mode]+' · '+s.temp+'°':'Kapat'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="sched-toggle${s.active?' on':''}" onclick="toggleSched(${i})"></button>
+          <button class="del-btn" onclick="delSched(${i})">✕</button>
+        </div>`;
+      grp.appendChild(item);
+    });
+    list.appendChild(grp);
+  });
+}
+function toggleSched(i){schedules[i].active=!schedules[i].active;saveScheds();renderSchedules();}
+function delSched(i){schedules.splice(i,1);saveScheds();renderSchedules();}
+
+function openModal(){
+  selDays=new Set();
+  document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('sel'));
+  document.getElementById('schedTime').value='07:00';
+  document.getElementById('schedPower').value='on';
+  document.getElementById('schedMode').value='HEAT';
+  document.getElementById('schedTemp').value='22';
+  document.getElementById('modalBg').classList.add('open');
+}
+function closeModal(){document.getElementById('modalBg').classList.remove('open');}
+function closeModalBg(e){if(e.target===document.getElementById('modalBg'))closeModal();}
+
+document.querySelectorAll('.day-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const d=+b.dataset.d;
+    if(selDays.has(d)){selDays.delete(d);b.classList.remove('sel');}
+    else{selDays.add(d);b.classList.add('sel');}
+  });
+});
+
+function saveSchedule(){
+  if(!selDays.size){alert('En az bir gün seç');return;}
+  const t=document.getElementById('schedTime').value;
+  if(!t){alert('Saat seç');return;}
+  schedules.push({
+    days:[...selDays],
+    time:t,
+    power:document.getElementById('schedPower').value,
+    mode:document.getElementById('schedMode').value,
+    temp:+document.getElementById('schedTemp').value,
+    active:true
+  });
+  saveScheds();renderSchedules();closeModal();
+}
+
+// Schedule executor (runs every 30s)
+function runSchedules(){
+  const now=new Date();
+  const day=now.getDay();
+  const hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const key=day+'_'+hhmm;
+  if(lastFired[key])return;
+  schedules.forEach(s=>{
+    if(!s.active)return;
+    if(!s.days.includes(day))return;
+    if(s.time!==hhmm)return;
+    lastFired[key]=true;
+    // Execute
+    if(s.power==='off'){send({power:false});}
+    else{
+      const mNum=MNUM[s.mode]||3;
+      send({power:true,mode:mNum,setTemp:s.temp});
+    }
+    console.log('Schedule executed:',s);
+  });
+  // Clear old keys
+  const keys=Object.keys(lastFired);
+  if(keys.length>100)keys.slice(0,50).forEach(k=>delete lastFired[k]);
+}
+setInterval(runSchedules,30000);
 
 renderAll();
+renderSchedules();
 </script>
 </body>
 </html>
