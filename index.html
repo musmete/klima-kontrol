@@ -195,6 +195,9 @@ const TOPIC_ST  = 'mits/' + MAC + '/status';
 const TOPIC_CMD = 'mits/' + MAC + '/cmd';
 
 // ======== State ========
+// mode: 1=HEAT 2=DRY 3=COOL 7=FAN 8=AUTO
+const MODE_STR  = { 'HEAT':1, 'DRY':2, 'COOL':3, 'FAN':7, 'AUTO':8 };
+const FAN_STR   = { 'AUTO':0, '1':1, '2':2, '3':3, '4':4, '5':5, 'QUIET':0 };
 let ac = { power: false, mode: 3, setTemp: 22, fanSpeed: 0, roomTemp: null, cn105ok: false };
 
 // ======== MQTT ========
@@ -216,10 +219,16 @@ client.on('error', e => setStatus('Hata: ' + e.message));
 client.on('message', (topic, payload) => {
   try {
     const d = JSON.parse(payload.toString());
-    if (d.power    !== undefined) ac.power    = d.power;
-    if (d.mode     !== undefined) ac.mode     = d.mode;
+    // power: "ON"/"OFF" string veya bool
+    if (d.power !== undefined)
+      ac.power = (d.power === true || d.power === 'ON');
+    // mode: "HEAT"/"COOL"/... string veya sayı
+    if (d.mode !== undefined)
+      ac.mode = typeof d.mode === 'string' ? (MODE_STR[d.mode] ?? 3) : d.mode;
     if (d.setTemp  !== undefined) ac.setTemp  = d.setTemp;
-    if (d.fanSpeed !== undefined) ac.fanSpeed = d.fanSpeed;
+    // fanSpeed: "AUTO"/"1"/... string veya sayı
+    if (d.fanSpeed !== undefined)
+      ac.fanSpeed = typeof d.fanSpeed === 'string' ? (FAN_STR[d.fanSpeed] ?? 0) : d.fanSpeed;
     if (d.roomTemp !== undefined) ac.roomTemp = d.roomTemp;
     if (d.cn105    !== undefined) ac.cn105ok  = d.cn105;
     renderAll();
