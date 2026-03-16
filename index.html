@@ -4,355 +4,345 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Klima">
 <title>Mitsubishi Klima</title>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
-:root {
-  --bg:       #080e1c;
-  --card:     #0f1a2e;
-  --card2:    #111f35;
-  --border:   rgba(255,255,255,0.07);
-  --accent:   #3d9be9;
-  --accent2:  #1a6fc4;
-  --text:     #e2eaf6;
-  --sub:      #5a7a99;
-  --heat:     #e87040;
-  --cool:     #3d9be9;
-  --dry:      #a06cc0;
-  --fan:      #5ab88a;
-  --auto:     #7a9ccc;
-  --on:       #3dbe7a;
-}
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+:root {
+  --red:   #d0021b;
+  --red2:  #a80016;
+  --bg:    #f0f2f5;
+  --card:  #ffffff;
+  --dark:  #1a1a2e;
+  --text:  #1a1a2e;
+  --sub:   #8a9bb5;
+  --border:#e2e8f0;
+  --blue:  #1565c0;
+  --on:    #2e7d32;
+}
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
   background: var(--bg);
-  color: var(--text);
   min-height: 100vh;
-  padding: 0 0 60px;
-  max-width: 440px;
+  max-width: 430px;
   margin: 0 auto;
+  padding-bottom: 80px;
 }
 
-/* ── Header ── */
-.header {
-  padding: 52px 20px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* ── Top bar ── */
+.topbar {
+  background: var(--red);
+  padding: 50px 20px 16px;
+  display: flex; align-items: center; justify-content: space-between;
 }
-.brand { display:flex; align-items:center; gap:10px; }
-.mits-logo svg { width:34px; height:34px; }
-.brand-text { line-height:1.1; }
-.brand-name { font-size:17px; font-weight:700; letter-spacing:.3px; }
-.brand-model { font-size:11px; color:var(--sub); letter-spacing:.5px; }
-.conn-wrap { display:flex; align-items:center; gap:6px; }
-.conn-dot { width:8px;height:8px;border-radius:50%;background:#333;transition:all .4s; }
-.conn-dot.ok  { background:var(--on); box-shadow:0 0 8px #3dbe7a66; }
-.conn-dot.err { background:#e05555; }
-.conn-label { font-size:11px; color:var(--sub); }
+.logo-row { display:flex; align-items:center; gap:10px; }
+/* Mitsubishi wordmark - three diamond shapes inline */
+.mits-diamonds { display:flex; gap:2px; align-items:center; }
+.mits-diamonds .d {
+  width:10px; height:16px;
+  background: white;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+.logo-text { color:white; font-size:13px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; }
+.logo-sub  { color:rgba(255,255,255,.7); font-size:10px; letter-spacing:.8px; }
+.conn-pill {
+  background: rgba(0,0,0,.2); border-radius:20px;
+  padding: 5px 10px; display:flex; align-items:center; gap:6px;
+}
+.conn-dot { width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3); transition:.3s; }
+.conn-dot.ok  { background:#69f0ae; box-shadow:0 0 6px #69f0ae; }
+.conn-dot.err { background:#ff5252; }
+.conn-txt { color:white; font-size:11px; }
 
-/* ── Big power card ── */
-.power-card {
-  margin: 0 16px 12px;
-  background: linear-gradient(145deg, #0f1e36 0%, #091428 100%);
-  border-radius: 28px;
-  border: 1px solid var(--border);
-  padding: 28px 24px 24px;
+/* ── Main card ── */
+.main-card {
+  background: var(--red);
+  padding: 0 16px 20px;
+}
+.temp-circle {
+  background: white;
+  border-radius: 24px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
-  position: relative;
-  overflow: hidden;
 }
-.power-card::before {
-  content:'';
-  position:absolute;
-  top:-60px; right:-60px;
-  width:200px; height:200px;
-  border-radius:50%;
-  background: radial-gradient(circle, rgba(61,155,233,0.08) 0%, transparent 70%);
-  pointer-events:none;
+.temps-row {
+  display: flex; gap: 20px; width:100%;
+  margin-bottom: 16px;
 }
-.power-card.active::before {
-  background: radial-gradient(circle, rgba(61,190,122,0.12) 0%, transparent 70%);
+.temp-box {
+  flex:1; text-align:center;
+  background: #f7f9fc; border-radius:16px; padding:14px 8px;
 }
+.temp-box-val { font-size:36px; font-weight:300; color:var(--text); line-height:1; }
+.temp-box-val sup { font-size:16px; color:var(--sub); vertical-align:super; }
+.temp-box-label { font-size:10px; color:var(--sub); letter-spacing:.7px; margin-top:4px; text-transform:uppercase; }
+.temp-divider { width:1px; background:var(--border); align-self:stretch; }
 
-.room-temp-big {
-  font-size:56px; font-weight:200; letter-spacing:-2px; line-height:1;
-  margin-bottom:4px;
+/* Set temp control */
+.settemp-row {
+  display:flex; align-items:center; gap:16px; width:100%;
 }
-.room-temp-big span { font-size:28px; color:var(--sub); font-weight:300; }
-.room-temp-label { font-size:12px; color:var(--sub); margin-bottom:24px; letter-spacing:.5px; }
+.settemp-display { flex:1; text-align:center; }
+.settemp-val { font-size:28px; font-weight:500; color:var(--text); }
+.settemp-label { font-size:10px; color:var(--sub); text-transform:uppercase; letter-spacing:.5px; }
+.temp-btn {
+  width:44px; height:44px; border-radius:50%;
+  border: 2px solid var(--border); background:white;
+  color:var(--red); font-size:24px; font-weight:400; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08); transition:.15s;
+}
+.temp-btn:active { background:#fff0f0; transform:scale(.9); }
 
-.power-row { display:flex; align-items:center; gap:24px; margin-bottom:20px; }
+/* Power button */
+.power-section {
+  display:flex; align-items:center; justify-content:center;
+  gap:16px; margin-top:16px; width:100%;
+}
 .power-btn {
-  width:76px; height:76px; border-radius:50%;
-  border: 2px solid #1e3454;
-  background: #0a1628;
+  width:64px; height:64px; border-radius:50%;
+  border: 3px solid var(--border); background: #f7f9fc;
   cursor:pointer; display:flex; align-items:center; justify-content:center;
-  transition: all .25s; flex-shrink:0;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  box-shadow: 0 3px 12px rgba(0,0,0,.1); transition:.2s;
 }
 .power-btn:active { transform:scale(.92); }
 .power-btn.on {
-  border-color: var(--on);
-  background: linear-gradient(145deg,#0f2e1e,#0a1f14);
-  box-shadow: 0 0 28px rgba(61,190,122,0.25), 0 4px 20px rgba(0,0,0,0.4);
+  border-color: var(--on); background:#e8f5e9;
+  box-shadow: 0 3px 16px rgba(46,125,50,.25);
 }
-.power-icon { font-size:32px; transition:filter .25s; }
-.power-btn.on .power-icon { filter: drop-shadow(0 0 6px rgba(61,190,122,0.6)); }
+.power-icon { font-size:28px; }
+.power-info { text-align:center; }
+.power-status-txt { font-size:22px; font-weight:700; color:var(--text); }
+.power-status-txt.on { color:var(--on); }
+.mode-chip {
+  display:inline-block; margin-top:4px;
+  background:var(--border); border-radius:20px;
+  padding:3px 10px; font-size:12px; color:var(--sub); font-weight:500;
+}
+.mode-chip.heat { background:#fff3e0; color:#e65100; }
+.mode-chip.cool { background:#e3f2fd; color:#1565c0; }
+.mode-chip.dry  { background:#f3e5f5; color:#6a1b9a; }
+.mode-chip.fan  { background:#e8f5e9; color:#2e7d32; }
+.mode-chip.auto { background:#ede7f6; color:#4527a0; }
 
-.power-info { flex:1; }
-.power-status { font-size:22px; font-weight:600; }
-.power-status.on-c { color:var(--on); }
-.mode-badge {
-  display:inline-flex; align-items:center; gap:5px;
-  margin-top:4px; font-size:13px; color:var(--sub);
-}
-
-.set-temp-row {
-  display:flex; align-items:center; justify-content:space-between;
-  width:100%; gap:8px;
-}
-.temp-display {
-  flex:1; text-align:center;
-  font-size:15px; color:var(--sub);
-}
-.temp-val { font-size:36px; font-weight:300; color:var(--text); line-height:1; }
-.temp-val span { font-size:18px; color:var(--sub); }
-.temp-label { font-size:11px; letter-spacing:.5px; margin-top:2px; }
-.temp-btn {
-  width:48px; height:48px; border-radius:50%;
-  border: 1.5px solid #1e3454;
-  background: transparent; color:var(--accent);
-  font-size:26px; font-weight:300; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  transition:all .18s;
-}
-.temp-btn:active { background:#0f2040; transform:scale(.9); }
-
-/* ── Cards ── */
-.card {
-  margin: 0 16px 12px;
-  background: var(--card);
-  border-radius: 22px;
-  border: 1px solid var(--border);
-  padding: 18px 18px 16px;
-}
-.card-title {
-  font-size:11px; color:var(--sub); text-transform:uppercase;
-  letter-spacing:.9px; margin-bottom:12px; font-weight:500;
+/* ── Sections ── */
+.section { background:white; margin:10px 12px 0; border-radius:18px; padding:16px; }
+.section-title {
+  font-size:11px; font-weight:700; color:var(--sub);
+  text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;
 }
 
-/* ── Mode grid ── */
-.mode-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:7px; }
+/* Mode buttons */
+.mode-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
 .mode-btn {
-  border-radius:14px; border:1.5px solid #1a2e48;
-  background: transparent; cursor:pointer;
-  padding:10px 2px 8px;
-  display:flex; flex-direction:column; align-items:center; gap:4px;
-  font-size:9px; font-weight:600; letter-spacing:.3px; color:var(--sub);
-  transition:all .2s;
+  border-radius:12px; border:1.5px solid var(--border);
+  background:white; padding:10px 2px 8px; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  font-size:9px; font-weight:700; color:var(--sub); letter-spacing:.3px;
+  transition:.18s;
 }
-.mode-btn .ico { font-size:19px; }
-.mode-btn:active { opacity:.7; transform:scale(.93); }
-.mode-btn.active-heat  { border-color:var(--heat); background:rgba(232,112,64,.12); color:var(--heat); }
-.mode-btn.active-cool  { border-color:var(--cool); background:rgba(61,155,233,.12); color:var(--cool); }
-.mode-btn.active-dry   { border-color:var(--dry);  background:rgba(160,108,192,.12); color:var(--dry); }
-.mode-btn.active-fan   { border-color:var(--fan);  background:rgba(90,184,138,.12); color:var(--fan); }
-.mode-btn.active-auto  { border-color:var(--auto); background:rgba(122,156,204,.12); color:var(--auto); }
+.mode-btn .ico { font-size:20px; }
+.mode-btn:active { opacity:.7; }
+.mode-btn.sel-heat { border-color:#e65100; background:#fff8f5; color:#e65100; }
+.mode-btn.sel-cool { border-color:#1565c0; background:#f0f7ff; color:#1565c0; }
+.mode-btn.sel-dry  { border-color:#6a1b9a; background:#fdf5ff; color:#6a1b9a; }
+.mode-btn.sel-fan  { border-color:#2e7d32; background:#f5fff6; color:#2e7d32; }
+.mode-btn.sel-auto { border-color:#4527a0; background:#f8f5ff; color:#4527a0; }
 
-/* ── Fan ── */
-.fan-row { display:flex; gap:6px; }
-.fan-btn {
-  flex:1; border-radius:12px; border:1.5px solid #1a2e48;
-  background:transparent; color:var(--sub);
-  padding:10px 4px; cursor:pointer; font-size:11px; font-weight:600;
-  transition:all .2s;
+/* Fan row */
+.pill-row { display:flex; gap:6px; }
+.pill-btn {
+  flex:1; border-radius:10px; border:1.5px solid var(--border);
+  background:white; color:var(--sub); padding:10px 4px;
+  cursor:pointer; font-size:12px; font-weight:600; text-align:center;
+  transition:.18s;
 }
-.fan-btn.active { border-color:var(--accent); background:rgba(61,155,233,.12); color:var(--accent); }
-.fan-btn:active { opacity:.7; }
+.pill-btn.sel { border-color:var(--red); background:#fff0f0; color:var(--red); }
+.pill-btn:active { opacity:.7; }
 
-/* ── Vane ── */
-.vane-row { display:flex; gap:6px; }
+/* Vane */
+.vane-row { display:flex; gap:5px; }
 .vane-btn {
-  flex:1; border-radius:12px; border:1.5px solid #1a2e48;
-  background:transparent; color:var(--sub);
-  padding:10px 2px; cursor:pointer; font-size:12px; font-weight:500;
-  transition:all .2s; text-align:center;
+  flex:1; border-radius:10px; border:1.5px solid var(--border);
+  background:white; color:var(--sub); padding:9px 2px;
+  cursor:pointer; font-size:13px; text-align:center; transition:.18s;
 }
-.vane-btn.active { border-color:#a06cc0; background:rgba(160,108,192,.12); color:#a06cc0; }
+.vane-btn.sel { border-color:#1565c0; background:#f0f7ff; color:#1565c0; }
 .vane-btn:active { opacity:.7; }
 
-/* ── Toggles (iSee, Plasma, Clean) ── */
-.toggle-row { display:flex; flex-direction:column; gap:8px; }
-.toggle-item {
-  display:flex; align-items:center; justify-content:space-between;
-  padding: 10px 14px;
-  background: var(--card2); border-radius:14px;
+/* Info row */
+.info-row { display:flex; gap:8px; }
+.info-item {
+  flex:1; background:#f7f9fc; border-radius:12px;
+  padding:12px; text-align:center;
 }
-.toggle-label { font-size:14px; font-weight:500; }
-.toggle-sub { font-size:11px; color:var(--sub); margin-top:1px; }
-.toggle-switch {
-  width:46px; height:26px; border-radius:13px;
-  background:#1a2e48; border:none; cursor:pointer;
-  position:relative; transition:background .25s; flex-shrink:0;
-}
-.toggle-switch::after {
-  content:''; position:absolute; top:3px; left:3px;
-  width:20px; height:20px; border-radius:50%;
-  background:#3a5070; transition:all .25s;
-}
-.toggle-switch.on { background:var(--accent2); }
-.toggle-switch.on::after { left:23px; background:#fff; }
+.info-val { font-size:18px; font-weight:600; color:var(--text); }
+.info-label { font-size:10px; color:var(--sub); text-transform:uppercase; letter-spacing:.5px; margin-top:2px; }
 
-/* ── Status bar ── */
-.status-bar {
-  text-align:center; font-size:11px; color:var(--sub);
-  padding: 12px 20px; margin-top:4px;
-}
+/* Status bar */
+.statusbar { text-align:center; font-size:11px; color:var(--sub); padding:14px; }
 
-/* ── Operating indicator ── */
-.operating-dot {
-  width:6px;height:6px;border-radius:50%;background:#333;
-  display:inline-block; margin-right:4px;
+/* Bottom nav (MELCloud style) */
+.bottomnav {
+  position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:430px;
+  background:var(--red2); display:flex;
+  padding-bottom: env(safe-area-inset-bottom);
 }
-.operating-dot.run { background:var(--heat); box-shadow:0 0 6px var(--heat); animation:pulse 1.5s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.nav-btn {
+  flex:1; padding:10px 4px 8px; border:none; background:transparent;
+  color:rgba(255,255,255,.6); font-size:9px; font-weight:600;
+  letter-spacing:.5px; cursor:pointer; display:flex; flex-direction:column;
+  align-items:center; gap:3px; text-transform:uppercase;
+}
+.nav-btn .nav-ico { font-size:20px; }
+.nav-btn.active { color:white; }
+.nav-btn.active .nav-ico { filter:drop-shadow(0 0 4px rgba(255,255,255,.5)); }
 </style>
 </head>
 <body>
 
-<!-- Header -->
-<div class="header">
-  <div class="brand">
-    <div class="mits-logo">
-      <!-- Mitsubishi 3 diamond logo -->
-      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="40,4 52,26 28,26" fill="#e8000d"/>
-        <polygon points="16,44 28,22 28,66" fill="#e8000d"/>
-        <polygon points="64,44 52,22 52,66" fill="#e8000d"/>
-      </svg>
-    </div>
-    <div class="brand-text">
-      <div class="brand-name">Mitsubishi Electric</div>
-      <div class="brand-model">MSZ-FA35VA</div>
+<!-- Top bar -->
+<div class="topbar">
+  <div class="logo-row">
+    <div class="mits-diamonds"><div class="d"></div><div class="d"></div><div class="d"></div></div>
+    <div>
+      <div class="logo-text">Mitsubishi Electric</div>
+      <div class="logo-sub">MSZ-FA35VA</div>
     </div>
   </div>
-  <div class="conn-wrap">
+  <div class="conn-pill">
     <div class="conn-dot" id="connDot"></div>
-    <span class="conn-label" id="connLabel">--</span>
+    <span class="conn-txt" id="connTxt">--</span>
   </div>
 </div>
 
-<!-- Power Card -->
-<div class="power-card" id="powerCard">
-  <div class="room-temp-big" id="roomTempBig">--<span>°C</span></div>
-  <div class="room-temp-label">ODA SICAKLIĞI</div>
+<!-- Main card -->
+<div class="main-card">
+  <div class="temp-circle">
 
-  <div class="power-row">
-    <button class="power-btn" id="powerBtn" onclick="togglePower()">
-      <span class="power-icon">⏻</span>
-    </button>
-    <div class="power-info">
-      <div class="power-status" id="powerStatus">KAPALI</div>
-      <div class="mode-badge">
-        <span class="operating-dot" id="opDot"></span>
-        <span id="modeBadge">—</span>
+    <!-- Sıcaklıklar -->
+    <div class="temps-row">
+      <div class="temp-box">
+        <div class="temp-box-val" id="roomTempVal">--<sup>°</sup></div>
+        <div class="temp-box-label">Oda</div>
+      </div>
+      <div class="temp-divider"></div>
+      <div class="temp-box">
+        <div class="temp-box-val" id="outTempVal">--<sup>°</sup></div>
+        <div class="temp-box-label">Dış Ortam</div>
       </div>
     </div>
-    <div class="temp-display">
-      <div class="temp-val" id="setTempVal">22<span>°</span></div>
-      <div class="temp-label" style="color:var(--sub)">AYAR</div>
-    </div>
-  </div>
 
-  <div class="set-temp-row">
-    <button class="temp-btn" onclick="changeTemp(-0.5)">−</button>
-    <div style="font-size:12px;color:var(--sub);flex:1;text-align:center">Hedef sıcaklık</div>
-    <button class="temp-btn" onclick="changeTemp(+0.5)">+</button>
+    <!-- Güç & durum -->
+    <div class="power-section">
+      <button class="temp-btn" onclick="changeTemp(-0.5)">−</button>
+      <div style="text-align:center">
+        <button class="power-btn" id="powerBtn" onclick="togglePower()">
+          <span class="power-icon">⏻</span>
+        </button>
+      </div>
+      <button class="temp-btn" onclick="changeTemp(+0.5)">+</button>
+    </div>
+
+    <div style="margin-top:10px;text-align:center">
+      <div class="power-status-txt" id="powerTxt">KAPALI</div>
+      <div class="mode-chip" id="modeChip">—</div>
+    </div>
+
+    <!-- Hedef sıcaklık -->
+    <div class="settemp-row" style="margin-top:14px;">
+      <div style="flex:1;font-size:11px;color:var(--sub);text-align:center;text-transform:uppercase;letter-spacing:.5px">Hedef sıcaklık</div>
+      <div class="settemp-val" id="setTempVal">22.0°</div>
+    </div>
+
   </div>
 </div>
 
 <!-- Mod -->
-<div class="card">
-  <div class="card-title">Çalışma Modu</div>
+<div class="section">
+  <div class="section-title">Çalışma Modu</div>
   <div class="mode-grid">
-    <button class="mode-btn" id="modeHEAT" onclick="setMode('HEAT',1)"><span class="ico">🔥</span>ISITMA</button>
-    <button class="mode-btn" id="modeCOOL" onclick="setMode('COOL',3)"><span class="ico">❄️</span>SOĞUTMA</button>
-    <button class="mode-btn" id="modeAUTO" onclick="setMode('AUTO',8)"><span class="ico">🔄</span>OTO</button>
-    <button class="mode-btn" id="modeDRY"  onclick="setMode('DRY',2)"><span class="ico">💧</span>KURUTMA</button>
-    <button class="mode-btn" id="modeFAN"  onclick="setMode('FAN',7)"><span class="ico">💨</span>FAN</button>
+    <button class="mode-btn" id="mHEAT" onclick="setMode('HEAT',1)"><span class="ico">🔥</span>ISITMA</button>
+    <button class="mode-btn" id="mCOOL" onclick="setMode('COOL',3)"><span class="ico">❄️</span>SOĞUTMA</button>
+    <button class="mode-btn" id="mAUTO" onclick="setMode('AUTO',8)"><span class="ico">🔄</span>OTO</button>
+    <button class="mode-btn" id="mDRY"  onclick="setMode('DRY',2)"><span class="ico">💧</span>KURUTMA</button>
+    <button class="mode-btn" id="mFAN"  onclick="setMode('FAN',7)"><span class="ico">💨</span>FAN</button>
   </div>
 </div>
 
 <!-- Fan -->
-<div class="card">
-  <div class="card-title">Fan Hızı</div>
-  <div class="fan-row">
-    <button class="fan-btn" id="fanAUTO"  onclick="setFan('AUTO',0)">Oto</button>
-    <button class="fan-btn" id="fan1"     onclick="setFan('1',1)">1</button>
-    <button class="fan-btn" id="fan2"     onclick="setFan('2',2)">2</button>
-    <button class="fan-btn" id="fan3"     onclick="setFan('3',3)">3</button>
-    <button class="fan-btn" id="fan4"     onclick="setFan('4',4)">4</button>
-    <button class="fan-btn" id="fan5"     onclick="setFan('5',5)">5</button>
+<div class="section">
+  <div class="section-title">Fan Hızı</div>
+  <div class="pill-row">
+    <button class="pill-btn" id="fAUTO" onclick="setFan('AUTO',0)">Oto</button>
+    <button class="pill-btn" id="f1"    onclick="setFan('1',1)">1</button>
+    <button class="pill-btn" id="f2"    onclick="setFan('2',2)">2</button>
+    <button class="pill-btn" id="f3"    onclick="setFan('3',3)">3</button>
+    <button class="pill-btn" id="f4"    onclick="setFan('4',4)">4</button>
+    <button class="pill-btn" id="f5"    onclick="setFan('5',5)">5</button>
   </div>
 </div>
 
-<!-- Dikey Hava Yönü -->
-<div class="card">
-  <div class="card-title">Dikey Hava Yönü</div>
+<!-- Dikey Yönlendirme -->
+<div class="section">
+  <div class="section-title">Dikey Yönlendirme</div>
   <div class="vane-row">
-    <button class="vane-btn" id="vaneAUTO" onclick="setVane('AUTO')">Oto</button>
-    <button class="vane-btn" id="vane1"    onclick="setVane('1')">↑↑</button>
-    <button class="vane-btn" id="vane2"    onclick="setVane('2')">↑</button>
-    <button class="vane-btn" id="vane3"    onclick="setVane('3')">→</button>
-    <button class="vane-btn" id="vane4"    onclick="setVane('4')">↓</button>
-    <button class="vane-btn" id="vane5"    onclick="setVane('5')">↓↓</button>
-    <button class="vane-btn" id="vaneSWING" onclick="setVane('SWING')">↕</button>
+    <button class="vane-btn" id="vAUTO"  onclick="setVane('AUTO')">Oto</button>
+    <button class="vane-btn" id="v1"     onclick="setVane('1')">▲▲</button>
+    <button class="vane-btn" id="v2"     onclick="setVane('2')">▲</button>
+    <button class="vane-btn" id="v3"     onclick="setVane('3')">—</button>
+    <button class="vane-btn" id="v4"     onclick="setVane('4')">▼</button>
+    <button class="vane-btn" id="v5"     onclick="setVane('5')">▼▼</button>
+    <button class="vane-btn" id="vSWING" onclick="setVane('SWING')">↕</button>
   </div>
 </div>
 
-<!-- Yatay Hava Yönü -->
-<div class="card">
-  <div class="card-title">Yatay Hava Yönü</div>
+<!-- Yatay Yönlendirme -->
+<div class="section">
+  <div class="section-title">Yatay Yönlendirme</div>
   <div class="vane-row">
-    <button class="vane-btn" id="wv<<"  onclick="setWVane('<<')">◀◀</button>
-    <button class="vane-btn" id="wv<"   onclick="setWVane('<')">◀</button>
-    <button class="vane-btn" id="wv|"   onclick="setWVane('|')">▶◀</button>
-    <button class="vane-btn" id="wv>"   onclick="setWVane('>')">▶</button>
-    <button class="vane-btn" id="wv>>"  onclick="setWVane('>>')">▶▶</button>
-    <button class="vane-btn" id="wv<>"  onclick="setWVane('<>')">◀▶</button>
-    <button class="vane-btn" id="wvSWING" onclick="setWVane('SWING')">↔</button>
+    <button class="vane-btn" id="w<<"    onclick="setWVane('<<')">◀◀</button>
+    <button class="vane-btn" id="w<"     onclick="setWVane('<')">◀</button>
+    <button class="vane-btn" id="w|"     onclick="setWVane('|')">●</button>
+    <button class="vane-btn" id="w>"     onclick="setWVane('>')">▶</button>
+    <button class="vane-btn" id="w>>"    onclick="setWVane('>>')">▶▶</button>
+    <button class="vane-btn" id="w<>"    onclick="setWVane('<>')">◀▶</button>
+    <button class="vane-btn" id="wSWING" onclick="setWVane('SWING')">↔</button>
   </div>
 </div>
 
-<!-- Ekstra -->
-<div class="card">
-  <div class="card-title">Özellikler</div>
-  <div class="toggle-row">
-    <div class="toggle-item">
-      <div>
-        <div class="toggle-label">👁 i-see Sensör</div>
-        <div class="toggle-sub">Kişi algılama aktif mi</div>
-      </div>
-      <div id="iseeStatus" style="font-size:12px;color:var(--sub)">—</div>
+<!-- Bilgi -->
+<div class="section">
+  <div class="section-title">Cihaz Durumu</div>
+  <div class="info-row">
+    <div class="info-item">
+      <div class="info-val" id="operatingVal">—</div>
+      <div class="info-label">Kompresör</div>
     </div>
-    <div class="toggle-item">
-      <div>
-        <div class="toggle-label">⚡ Çalışma Durumu</div>
-        <div class="toggle-sub">Kompresör aktifliği</div>
-      </div>
-      <div id="operatingStatus" style="font-size:12px;color:var(--sub)">—</div>
+    <div class="info-item">
+      <div class="info-val" id="iseeVal">—</div>
+      <div class="info-label">i-see Sensör</div>
+    </div>
+    <div class="info-item">
+      <div class="info-val" id="cn105Val">—</div>
+      <div class="info-label">CN105</div>
     </div>
   </div>
 </div>
 
-<div class="status-bar" id="statusBar">Bağlanıyor...</div>
+<div class="statusbar" id="statusBar">Bağlanıyor...</div>
+
+<!-- Bottom nav -->
+<div class="bottomnav">
+  <button class="nav-btn active"><span class="nav-ico">🏠</span>Kontrol</button>
+  <button class="nav-btn"><span class="nav-ico">📊</span>Raporlar</button>
+  <button class="nav-btn"><span class="nav-ico">⚙️</span>Ayarlar</button>
+</div>
 
 <script>
 const BROKER    = 'wss://broker.emqx.io:8084/mqtt';
@@ -360,162 +350,120 @@ const MAC       = 'D48AFC9E85C8';
 const TOPIC_ST  = 'mits/' + MAC + '/status';
 const TOPIC_CMD = 'mits/' + MAC + '/cmd';
 
-// ── State ──
 let ac = {
-  power: false, mode: 'COOL', setTemp: 22, fan: 'AUTO',
-  vane: 'AUTO', wideVane: '|', roomTemp: null,
-  iSee: false, operating: false, cn105: false
+  power:false, mode:'COOL', setTemp:22, fan:'AUTO',
+  vane:'AUTO', wideVane:'|', roomTemp:null, outTemp:null,
+  iSee:false, operating:false, cn105:false
 };
 
-// Per-field command lock: ignore MQTT update for 8s after sending that field
-const lock = {};
-function setLock(...fields) {
-  fields.forEach(f => {
-    clearTimeout(lock[f]);
-    lock[f] = setTimeout(() => delete lock[f], 8000);
-  });
-}
-function isLocked(f) { return !!lock[f]; }
+// Per-field command lock (8 sn)
+const locks = {};
+function lock(...fs) { fs.forEach(f => { clearTimeout(locks[f]); locks[f]=setTimeout(()=>delete locks[f],8000); }); }
+function locked(f)  { return !!locks[f]; }
 
-// ── MQTT ──
+// MQTT
 const client = mqtt.connect(BROKER, {
-  clientId: 'webapp_' + Math.random().toString(36).slice(2,8),
-  clean: true, reconnectPeriod: 3000, connectTimeout: 8000
+  clientId:'app_'+Math.random().toString(36).slice(2,8),
+  clean:true, reconnectPeriod:3000, connectTimeout:8000
 });
-client.on('connect', () => {
-  setConn('ok','Bağlı');
-  client.subscribe(TOPIC_ST);
-});
-client.on('close',   () => setConn('err','Bağlantı yok'));
-client.on('error',   () => setConn('err','Hata'));
+client.on('connect',   () => { setConn('ok','Bağlı'); client.subscribe(TOPIC_ST); });
+client.on('close',     () => setConn('err','Bağlantı yok'));
 client.on('reconnect', () => setConn('','Bağlanıyor'));
 
-client.on('message', (topic, payload) => {
+client.on('message', (t, payload) => {
   try {
     const d = JSON.parse(payload.toString());
-    if (!isLocked('power')    && d.power    != null) ac.power    = (d.power === true || d.power === 'ON');
-    if (!isLocked('mode')     && d.mode     != null) ac.mode     = d.mode;
-    if (!isLocked('setTemp')  && d.setTemp  != null) ac.setTemp  = +d.setTemp;
-    if (!isLocked('fan')      && d.fan      != null) ac.fan      = d.fan;
-    if (!isLocked('vane')     && d.vane     != null) ac.vane     = d.vane;
-    if (!isLocked('wideVane') && d.wideVane != null) ac.wideVane = d.wideVane;
-    if (d.roomTemp  != null) ac.roomTemp  = +d.roomTemp;
-    if (d.iSee      != null) ac.iSee      = d.iSee;
-    if (d.operating != null) ac.operating = d.operating;
-    if (d.cn105     != null) ac.cn105     = d.cn105;
+    if (!locked('power')    && d.power    !=null) ac.power    = d.power===true||d.power==='ON';
+    if (!locked('mode')     && d.mode     !=null) ac.mode     = d.mode;
+    if (!locked('setTemp')  && d.setTemp  !=null) ac.setTemp  = +d.setTemp;
+    if (!locked('fan')      && d.fan      !=null) ac.fan      = d.fan;
+    if (!locked('vane')     && d.vane     !=null) ac.vane     = d.vane;
+    if (!locked('wideVane') && d.wideVane !=null) ac.wideVane = d.wideVane;
+    if (d.roomTemp !=null) ac.roomTemp  = +d.roomTemp;
+    if (d.outTemp  !=null) ac.outTemp   = +d.outTemp;
+    if (d.iSee     !=null) ac.iSee      = d.iSee;
+    if (d.operating!=null) ac.operating = d.operating;
+    if (d.cn105    !=null) ac.cn105     = d.cn105;
     renderAll();
-    const cn = ac.cn105 ? '' : '  ⚠ CN105 bağlı değil';
-    setStatus('Güncellendi: ' + new Date().toLocaleTimeString('tr-TR') + cn);
-  } catch(e) {}
+    setStatus('Güncellendi ' + new Date().toLocaleTimeString('tr-TR'));
+  } catch(e){}
 });
 
-function sendCmd(obj) {
-  setLock(...Object.keys(obj));
-  client.publish(TOPIC_CMD, JSON.stringify(obj));
-}
+function send(obj) { lock(...Object.keys(obj)); client.publish(TOPIC_CMD, JSON.stringify(obj)); }
 
-// ── Actions ──
-function togglePower() {
-  ac.power = !ac.power;
-  sendCmd({ power: ac.power });
-  renderPower();
-}
-let tempTimer = null;
+// Actions
+function togglePower() { ac.power=!ac.power; send({power:ac.power}); renderPower(); }
+let tTimer=null;
 function changeTemp(d) {
-  ac.setTemp = Math.round((Math.min(31, Math.max(16, ac.setTemp + d)) * 2)) / 2;
-  renderTemp();
-  clearTimeout(tempTimer);
-  tempTimer = setTimeout(() => sendCmd({ setTemp: ac.setTemp }), 400);
-  setLock('setTemp');
+  ac.setTemp = Math.round((Math.min(31,Math.max(16,ac.setTemp+d))*2))/2;
+  lock('setTemp'); renderTemp();
+  clearTimeout(tTimer); tTimer=setTimeout(()=>send({setTemp:ac.setTemp}),400);
 }
-function setMode(mStr, mNum) {
-  ac.mode = mStr;
-  sendCmd({ mode: mNum });
-  renderMode();
-}
-function setFan(fStr) {
-  ac.fan = fStr;
-  sendCmd({ fan: fStr === 'AUTO' ? 0 : parseInt(fStr) });
-  renderFan();
-}
-function setVane(v) {
-  ac.vane = v;
-  sendCmd({ vane: v });
-  renderVane();
-}
-function setWVane(v) {
-  ac.wideVane = v;
-  sendCmd({ wideVane: v });
-  renderWVane();
-}
+function setMode(s,n)  { ac.mode=s;      send({mode:n});          renderMode(); }
+function setFan(s,n)   { ac.fan=s;       send({fan:n});            renderFan(); }
+function setVane(v)    { ac.vane=v;      send({vane:v});           renderVane(); }
+function setWVane(v)   { ac.wideVane=v;  send({wideVane:v});       renderWVane(); }
 
-// ── Render ──
-function renderAll() {
-  renderPower(); renderTemp(); renderMode();
-  renderFan(); renderVane(); renderWVane(); renderExtras();
-}
-const MODE_COLOR = { HEAT:'heat', COOL:'cool', DRY:'dry', FAN:'fan', AUTO:'auto' };
-const MODE_LABEL = { HEAT:'Isıtma', COOL:'Soğutma', DRY:'Kurutma', FAN:'Fan', AUTO:'Otomatik' };
-const MODE_ICO   = { HEAT:'🔥', COOL:'❄️', DRY:'💧', FAN:'💨', AUTO:'🔄' };
+// Render
+function renderAll(){ renderPower();renderTemp();renderMode();renderFan();renderVane();renderWVane();renderInfo(); }
 
-function renderPower() {
-  const btn  = document.getElementById('powerBtn');
-  const stat = document.getElementById('powerStatus');
-  const card = document.getElementById('powerCard');
-  if (ac.power) {
-    btn.classList.add('on'); card.classList.add('active');
-    stat.textContent = 'AÇIK'; stat.className = 'power-status on-c';
-  } else {
-    btn.classList.remove('on'); card.classList.remove('active');
-    stat.textContent = 'KAPALI'; stat.className = 'power-status';
-  }
-  const badge = document.getElementById('modeBadge');
-  badge.textContent = (MODE_ICO[ac.mode]||'') + ' ' + (MODE_LABEL[ac.mode]||'');
-}
-function renderTemp() {
-  document.getElementById('roomTempBig').innerHTML =
-    (ac.roomTemp && ac.roomTemp > 0) ? ac.roomTemp.toFixed(1) + '<span>°C</span>' : '--<span>°C</span>';
-  document.getElementById('setTempVal').innerHTML = ac.setTemp.toFixed(1) + '<span>°</span>';
-}
-function renderMode() {
-  ['HEAT','COOL','AUTO','DRY','FAN'].forEach(m => {
-    const el = document.getElementById('mode'+m);
-    if (!el) return;
-    el.className = 'mode-btn' + (ac.mode === m ? ' active-'+MODE_COLOR[m] : '');
-  });
-}
-function renderFan() {
-  ['AUTO','1','2','3','4','5'].forEach(f => {
-    const el = document.getElementById('fan'+f);
-    if (el) el.classList.toggle('active', ac.fan === f);
-  });
-}
-function renderVane() {
-  ['AUTO','1','2','3','4','5','SWING'].forEach(v => {
-    const el = document.getElementById('vane'+v);
-    if (el) el.classList.toggle('active', ac.vane === v);
-  });
-}
-function renderWVane() {
-  ['<<','<','|','>','>>','<>','SWING'].forEach(v => {
-    const el = document.getElementById('wv'+v);
-    if (el) el.classList.toggle('active', ac.wideVane === v);
-  });
-}
-function renderExtras() {
-  document.getElementById('iseeStatus').textContent     = ac.iSee     ? '✓ Aktif' : 'Pasif';
-  document.getElementById('iseeStatus').style.color     = ac.iSee     ? 'var(--on)' : 'var(--sub)';
-  document.getElementById('operatingStatus').textContent = ac.operating ? '✓ Çalışıyor' : 'Beklemede';
-  document.getElementById('operatingStatus').style.color = ac.operating ? 'var(--heat)'  : 'var(--sub)';
-  const opDot = document.getElementById('opDot');
-  opDot.className = 'operating-dot' + (ac.operating ? ' run' : '');
-}
+const MCOL  = {HEAT:'heat',COOL:'cool',DRY:'dry',FAN:'fan',AUTO:'auto'};
+const MNAME = {HEAT:'Isıtma 🔥',COOL:'Soğutma ❄️',DRY:'Kurutma 💧',FAN:'Fan 💨',AUTO:'Otomatik 🔄'};
 
-function setConn(state, label) {
-  document.getElementById('connDot').className = 'conn-dot ' + state;
-  document.getElementById('connLabel').textContent = label;
+function renderPower(){
+  const btn=document.getElementById('powerBtn');
+  const txt=document.getElementById('powerTxt');
+  const chip=document.getElementById('modeChip');
+  btn.classList.toggle('on',ac.power);
+  txt.textContent = ac.power?'AÇIK':'KAPALI';
+  txt.className   = 'power-status-txt'+(ac.power?' on':'');
+  chip.textContent= MNAME[ac.mode]||ac.mode;
+  chip.className  = 'mode-chip '+(MCOL[ac.mode]||'');
 }
-function setStatus(t) { document.getElementById('statusBar').textContent = t; }
+function renderTemp(){
+  const rt=ac.roomTemp&&ac.roomTemp>0?ac.roomTemp.toFixed(1):'--';
+  const ot=ac.outTemp!=null&&ac.outTemp>-50?ac.outTemp.toFixed(1):'--';
+  document.getElementById('roomTempVal').innerHTML = rt+'<sup>°</sup>';
+  document.getElementById('outTempVal').innerHTML  = ot+'<sup>°</sup>';
+  document.getElementById('setTempVal').textContent= ac.setTemp.toFixed(1)+'°';
+}
+function renderMode(){
+  ['HEAT','COOL','AUTO','DRY','FAN'].forEach(m=>{
+    const el=document.getElementById('m'+m);
+    if(el) el.className='mode-btn'+(ac.mode===m?' sel-'+MCOL[m]:'');
+  });
+}
+function renderFan(){
+  ['AUTO','1','2','3','4','5'].forEach(f=>{
+    const el=document.getElementById('f'+f);
+    if(el) el.classList.toggle('sel',ac.fan===f);
+  });
+}
+function renderVane(){
+  ['AUTO','1','2','3','4','5','SWING'].forEach(v=>{
+    const el=document.getElementById('v'+v);
+    if(el) el.classList.toggle('sel',ac.vane===v);
+  });
+}
+function renderWVane(){
+  ['<<','<','|','>','>>','<>','SWING'].forEach(v=>{
+    const el=document.getElementById('w'+v);
+    if(el) el.classList.toggle('sel',ac.wideVane===v);
+  });
+}
+function renderInfo(){
+  document.getElementById('operatingVal').textContent = ac.operating?'Çalışıyor':'Beklemede';
+  document.getElementById('operatingVal').style.color = ac.operating?'#e65100':'var(--sub)';
+  document.getElementById('iseeVal').textContent = ac.iSee?'Aktif':'Pasif';
+  document.getElementById('iseeVal').style.color = ac.iSee?'#2e7d32':'var(--sub)';
+  document.getElementById('cn105Val').textContent = ac.cn105?'Bağlı':'Bağlı Değil';
+  document.getElementById('cn105Val').style.color = ac.cn105?'#2e7d32':'#c62828';
+}
+function setConn(s,l){
+  document.getElementById('connDot').className='conn-dot '+s;
+  document.getElementById('connTxt').textContent=l;
+}
+function setStatus(t){ document.getElementById('statusBar').textContent=t; }
 
 renderAll();
 </script>
