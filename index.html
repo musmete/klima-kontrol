@@ -4,165 +4,298 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Klima">
-<title>Mitsubishi Klima</title>
+<title>Mitsubishi Electric</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
 :root{
-  --red:#cc0018;--red2:#a80013;--bg:#f0f2f5;--card:#fff;
-  --text:#1a1a2e;--sub:#7a8faa;--border:#e2e8f0;
-  --blue:#1565c0;--on:#2e7d32;--heat:#e65100;--cool:#1565c0;
+  --red:#cc0018;--red2:#a80013;--red3:#8c0010;
+  --bg:#eaecf0;--card:#fff;
+  --text:#111827;--sub:#6b7280;--border:#e5e7eb;
+  --blue:#1565c0;--on:#2e7d32;--heat:#d84315;--cool:#1565c0;
   --dry:#6a1b9a;--fan:#00695c;--auto:#4527a0;
 }
-body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg);max-width:430px;margin:0 auto;min-height:100vh;padding-bottom:64px}
+html{background:var(--red)}
+body{
+  font-family:'Barlow',-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
+  background:var(--bg);max-width:430px;margin:0 auto;
+  min-height:100vh;padding-bottom:72px;
+}
 
-/* ── Topbar ── */
-.topbar{background:var(--red);padding:48px 20px 14px;display:flex;align-items:center;justify-content:space-between}
-.brand{display:flex;align-items:center;gap:10px}
-.brand-txt .name{color:#fff;font-size:13px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase}
-.brand-txt .model{color:rgba(255,255,255,.65);font-size:10px;letter-spacing:.6px}
-.conn-pill{background:rgba(0,0,0,.22);border-radius:20px;padding:5px 10px;display:flex;align-items:center;gap:6px}
-.conn-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);transition:.3s}
-.conn-dot.ok{background:#69f0ae;box-shadow:0 0 6px #69f0ae}
-.conn-dot.err{background:#ff5252}
-.conn-txt{color:#fff;font-size:11px}
+/* ══ Topbar ══ */
+.topbar{
+  background:linear-gradient(150deg,#d80018 0%,#9a0012 100%);
+  padding:50px 18px 13px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+}
+.brand{display:flex;align-items:center;gap:11px}
+.brand-txt .name{
+  font-family:'Barlow Condensed',Arial,sans-serif;
+  font-size:18px;font-weight:800;letter-spacing:.2px;
+  color:#fff;line-height:1;
+}
+.brand-txt .model{
+  font-family:'Barlow Condensed',Arial,sans-serif;
+  color:rgba(255,255,255,.55);font-size:11px;letter-spacing:.5px;
+  margin-top:2px;font-weight:500;text-transform:uppercase;
+}
+.conn-pill{
+  background:rgba(0,0,0,.28);border-radius:20px;
+  padding:5px 12px;display:flex;align-items:center;gap:6px;
+  border:1px solid rgba(255,255,255,.1);
+}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.25);transition:.4s}
+.conn-dot.ok {background:#4ade80;box-shadow:0 0 8px #4ade8099}
+.conn-dot.err{background:#f87171;box-shadow:0 0 6px #f8717199}
+.conn-txt{color:rgba(255,255,255,.9);font-size:11px;font-weight:600;letter-spacing:.3px}
 
-/* ── Main area ── */
-.main{background:var(--red);padding:0 14px 16px}
-.main-inner{background:#fff;border-radius:22px;padding:18px 16px}
+/* ══ Main panel ══ */
+.main{background:linear-gradient(150deg,#d80018 0%,#9a0012 100%);padding:0 14px 16px}
+.main-inner{background:#fff;border-radius:24px;padding:20px 16px 16px;box-shadow:0 8px 32px rgba(0,0,0,.15)}
 
-/* Temps row */
-.temps{display:flex;gap:10px;margin-bottom:14px}
-.temp-box{flex:1;background:#f7f9fc;border-radius:14px;padding:12px 8px;text-align:center}
-.temp-box .val{font-size:32px;font-weight:300;color:var(--text);line-height:1}
-.temp-box .val sup{font-size:14px;color:var(--sub);vertical-align:super}
-.temp-box .lbl{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-top:3px}
+/* ── Circular Thermostat ── */
+.thermo-wrap{position:relative;width:210px;height:210px;margin:0 auto 4px}
+.thermo-svg{position:absolute;top:0;left:0;width:210px;height:210px}
+.thermo-center{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center;pointer-events:none;
+  width:130px;
+}
+.tc-set{
+  font-family:'Barlow',sans-serif;
+  font-size:52px;font-weight:300;color:var(--text);
+  line-height:1;letter-spacing:-2px;
+}
+.tc-set sub{font-size:22px;color:var(--sub);vertical-align:baseline;font-weight:400;letter-spacing:0}
+.tc-label{font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.tc-room{font-size:13px;font-weight:500;color:var(--sub);margin-top:6px}
 
-/* Power area */
-.pwr-row{display:flex;align-items:center;gap:14px}
-.pwr-btn{width:60px;height:60px;border-radius:50%;border:2.5px solid var(--border);background:#f7f9fc;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.09);transition:.2s;flex-shrink:0}
-.pwr-btn:active{transform:scale(.92)}
-.pwr-btn.on{border-color:var(--on);background:#e8f5e9;box-shadow:0 2px 14px rgba(46,125,50,.22)}
+.thermo-btns{display:flex;align-items:center;justify-content:center;gap:52px;margin-top:2px}
+.thermo-btn{
+  width:44px;height:44px;border-radius:50%;
+  border:2px solid var(--border);background:#fff;
+  color:var(--red);font-size:26px;font-weight:300;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.08);transition:.12s;
+  user-select:none;-webkit-user-select:none;
+}
+.thermo-btn:active{background:#fff0f0;transform:scale(.88)}
+
+/* ── Power row ── */
+.pwr-row{display:flex;align-items:center;gap:14px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.pwr-btn{
+  width:62px;height:62px;border-radius:50%;border:none;
+  background:linear-gradient(145deg,#e8e8e8,#f8f8f8);
+  box-shadow:4px 4px 12px rgba(0,0,0,.13),-3px -3px 9px rgba(255,255,255,.9);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .25s;flex-shrink:0;color:#9ca3af;
+}
+.pwr-btn:active{transform:scale(.91)}
+.pwr-btn.on{
+  background:linear-gradient(145deg,#388e3c,#4caf50);
+  box-shadow:0 0 0 5px rgba(76,175,80,.2),4px 4px 14px rgba(0,0,0,.15);
+  color:#fff;
+}
 .pwr-info{flex:1}
-.pwr-status{font-size:22px;font-weight:700;color:var(--text)}
+.pwr-status{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:var(--text);line-height:1;letter-spacing:.2px}
 .pwr-status.on{color:var(--on)}
-.mode-chip{display:inline-flex;align-items:center;gap:5px;margin-top:3px;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500;background:var(--border);color:var(--sub)}
+.mode-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  margin-top:5px;border-radius:20px;padding:3px 10px;
+  font-size:11px;font-weight:600;background:var(--border);color:var(--sub);
+}
 .mode-chip.heat{background:#fff3e0;color:var(--heat)}
 .mode-chip.cool{background:#e3f2fd;color:var(--cool)}
 .mode-chip.dry {background:#f3e5f5;color:var(--dry)}
 .mode-chip.fan {background:#e0f2f1;color:var(--fan)}
 .mode-chip.auto{background:#ede7f6;color:var(--auto)}
-.settemp-box{background:#f7f9fc;border-radius:14px;padding:10px 14px;text-align:center;flex-shrink:0}
-.settemp-val{font-size:26px;font-weight:500;color:var(--text);line-height:1}
-.settemp-lbl{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
 
-/* Temp buttons */
-.settemp-row{display:flex;align-items:center;justify-content:center;gap:20px;margin-top:12px}
-.tbtn{width:42px;height:42px;border-radius:50%;border:2px solid var(--border);background:#fff;color:var(--red);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 6px rgba(0,0,0,.08);transition:.15s}
-.tbtn:active{background:#fff0f0;transform:scale(.9)}
+/* ── Sub-info row (outdoor + humidity) ── */
+.sub-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.sub-box{
+  background:#f8fafc;border-radius:12px;padding:9px 10px;
+  border:1px solid var(--border);display:flex;align-items:center;gap:8px;
+}
+.sub-icon{font-size:16px;opacity:.7}
+.sub-text{}
+.sub-val{font-size:16px;font-weight:600;color:var(--text);line-height:1}
+.sub-lbl{font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;margin-top:1px}
+.sub-box.hum-box .sub-val{color:#1565c0}
 
-/* ── Sections ── */
-.sec{background:#fff;margin:10px 12px 0;border-radius:18px;padding:14px 14px 12px}
-.sec-title{font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+/* ══ Sections ══ */
+.sec{background:#fff;margin:10px 12px 0;border-radius:18px;padding:13px 13px 11px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.sec-title{font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.9px;margin-bottom:10px}
 
 /* Mode grid */
-.mode-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
-.mbtn{border-radius:12px;border:1.5px solid var(--border);background:#fff;padding:9px 2px 7px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;font-weight:700;color:var(--sub);letter-spacing:.3px;transition:.18s}
-.mbtn:active{opacity:.7}
-.mbtn svg{width:22px;height:22px}
-.mbtn.sel-heat{border-color:var(--heat);background:#fff8f5;color:var(--heat)}
+.mode-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.mbtn{
+  border-radius:12px;border:1.5px solid var(--border);background:#fff;
+  padding:9px 2px 7px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  font-size:9px;font-weight:700;color:var(--sub);letter-spacing:.3px;transition:.16s;
+}
+.mbtn:active{opacity:.6;transform:scale(.93)}
+.mbtn svg{width:21px;height:21px}
+.mbtn.sel-heat{border-color:var(--heat);background:#fff8f4;color:var(--heat)}
 .mbtn.sel-cool{border-color:var(--cool);background:#f0f7ff;color:var(--cool)}
 .mbtn.sel-dry {border-color:var(--dry); background:#fdf5ff;color:var(--dry)}
 .mbtn.sel-fan {border-color:var(--fan); background:#f0fffe;color:var(--fan)}
 .mbtn.sel-auto{border-color:var(--auto);background:#f8f5ff;color:var(--auto)}
 
-/* Pills */
-.pills{display:flex;gap:6px}
-.pbtn{flex:1;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--sub);padding:9px 4px;cursor:pointer;font-size:11px;font-weight:600;text-align:center;transition:.18s}
+/* Pills (fan) */
+.pills{display:flex;gap:5px}
+.pbtn{flex:1;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--sub);padding:9px 2px;cursor:pointer;font-size:11px;font-weight:600;text-align:center;transition:.15s}
 .pbtn.sel{border-color:var(--red);background:#fff0f0;color:var(--red)}
-.pbtn:active{opacity:.7}
+.pbtn:active{opacity:.65}
 
 /* Vane */
-.vrow{display:flex;gap:5px}
-.vbtn{flex:1;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--sub);padding:9px 2px;cursor:pointer;font-size:12px;text-align:center;transition:.18s}
+.vrow{display:flex;gap:4px}
+.vbtn{flex:1;border-radius:9px;border:1.5px solid var(--border);background:#fff;color:var(--sub);padding:9px 2px;cursor:pointer;font-size:12px;text-align:center;transition:.15s}
 .vbtn.sel{border-color:var(--blue);background:#f0f7ff;color:var(--blue)}
-.vbtn:active{opacity:.7}
+.vbtn:active{opacity:.65}
 
-/* Info */
+/* ── Special Functions ── */
+.fn-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.fn-card{
+  border-radius:14px;border:1.5px solid var(--border);background:#fff;
+  padding:12px 8px 10px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  transition:.18s;box-shadow:0 1px 4px rgba(0,0,0,.04);
+}
+.fn-card:active{transform:scale(.93);opacity:.75}
+.fn-card.fn-on           {border-color:#1565c0;background:#f0f7ff}
+.fn-card.fn-plasma.fn-on {border-color:#7b1fa2;background:#f8f0ff}
+.fn-card.fn-clean.fn-on  {border-color:#00695c;background:#f0fffe}
+.fn-icon svg{width:21px;height:21px;stroke:var(--sub);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.fn-card.fn-on .fn-icon svg          {stroke:#1565c0}
+.fn-card.fn-plasma.fn-on .fn-icon svg{stroke:#7b1fa2}
+.fn-card.fn-clean.fn-on .fn-icon svg {stroke:#00695c}
+.fn-name{font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px}
+.fn-badge{font-size:9px;font-weight:700;border-radius:6px;padding:2px 7px;background:var(--border);color:var(--sub);margin-top:1px}
+.fn-card.fn-on .fn-badge           {background:#e3f2fd;color:#1565c0}
+.fn-card.fn-plasma.fn-on .fn-badge {background:#f3e5f5;color:#7b1fa2}
+.fn-card.fn-clean.fn-on .fn-badge  {background:#e0f2f1;color:#00695c}
+
+/* Info grid */
 .info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.ibox{background:#f7f9fc;border-radius:12px;padding:10px 6px;text-align:center}
-.ibox .iv{font-size:14px;font-weight:600;color:var(--text)}
-.ibox .il{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.ibox{background:#f8fafc;border-radius:12px;padding:10px 6px;text-align:center;border:1px solid var(--border)}
+.ibox .iv{font-size:12px;font-weight:700;color:var(--text)}
+.ibox .il{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;font-weight:600}
 
-/* ── Schedule tab ── */
+/* Status bar */
+.statusbar{text-align:center;font-size:11px;color:var(--sub);padding:10px 14px 4px}
+
+/* ══ Tab system ══ */
 .tab-content{display:none}
 .tab-content.active{display:block}
 
-.sched-header{display:flex;align-items:center;justify-content:space-between;padding:14px 14px 0}
-.sched-title{font-size:17px;font-weight:700;color:var(--text)}
-.add-btn{background:var(--red);color:#fff;border:none;border-radius:50%;width:36px;height:36px;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(200,0,20,.3)}
+/* ══ Outdoor Unit Tab ══ */
+.ou-header{padding:16px 14px 6px}
+.ou-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--text)}
+.ou-sub{font-size:12px;color:var(--sub);margin-top:2px}
+.data-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 12px 0}
+.data-card{background:#fff;border-radius:16px;padding:14px 12px;box-shadow:0 2px 10px rgba(0,0,0,.06);border:1px solid var(--border)}
+.data-card.future{opacity:.5}
+.dc-label{font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.dc-val{font-size:30px;font-weight:300;color:var(--text);letter-spacing:-0.5px;line-height:1}
+.dc-val sup{font-size:13px;color:var(--sub);vertical-align:super;font-weight:400}
+.dc-val .dcu{font-size:14px;color:var(--sub);font-weight:400}
+.dc-status{font-size:14px;font-weight:700;color:var(--text)}
+.dc-sub{font-size:10px;color:var(--sub);margin-top:3px}
+.dc-badge{display:inline-block;font-size:9px;font-weight:700;border-radius:6px;padding:2px 7px;margin-top:5px;background:#f0f4f8;color:var(--sub)}
+.dc-badge.soon  {background:#fff8e1;color:#e65100}
+.dc-badge.active{background:#e8f5e9;color:var(--on)}
+.dc-badge.off   {background:#fce4ec;color:#c62828}
+.ou-note{margin:12px 12px 12px;background:#fff;border-radius:14px;padding:12px 14px;border-left:3px solid var(--red);box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.ou-note p{font-size:12px;color:var(--sub);line-height:1.55}
 
-.sched-list{padding:10px 12px}
+/* ══ Schedule Tab ══ */
+.sched-header{display:flex;align-items:center;justify-content:space-between;padding:16px 14px 6px}
+.sched-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--text)}
+.add-btn{background:var(--red);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(204,0,24,.35)}
+.sched-list{padding:8px 12px}
 .sched-day-group{margin-bottom:10px}
-.sched-day-label{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;padding-left:2px}
-.sched-item{background:#fff;border-radius:14px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.sched-item.inactive{opacity:.5}
+.sched-day-label{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px;padding-left:2px}
+.sched-item{background:#fff;border-radius:14px;padding:12px 13px;display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;box-shadow:0 1px 5px rgba(0,0,0,.07);border:1px solid var(--border)}
+.sched-item.inactive{opacity:.45}
 .sched-left{display:flex;align-items:center;gap:10px}
-.sched-time{font-size:22px;font-weight:300;color:var(--text);line-height:1}
+.sched-time{font-size:22px;font-weight:300;color:var(--text);line-height:1;letter-spacing:-.3px}
 .sched-info{font-size:12px;color:var(--sub);margin-top:2px}
-.sched-toggle{width:44px;height:24px;border-radius:12px;border:none;background:#e0e0e0;position:relative;cursor:pointer;transition:.25s;flex-shrink:0}
-.sched-toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.sched-toggle{width:44px;height:24px;border-radius:12px;border:none;background:#d1d5db;position:relative;cursor:pointer;transition:.25s;flex-shrink:0}
+.sched-toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.25s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .sched-toggle.on{background:var(--red)}
 .sched-toggle.on::after{left:23px}
-.del-btn{background:none;border:none;color:var(--sub);font-size:18px;cursor:pointer;padding:4px;margin-left:4px}
+.del-btn{background:none;border:none;color:var(--sub);font-size:17px;cursor:pointer;padding:4px 4px 4px 6px}
+.no-sched{text-align:center;padding:44px 20px;color:var(--sub);font-size:14px;line-height:1.7}
 
-.no-sched{text-align:center;padding:40px 20px;color:var(--sub);font-size:14px}
-
-/* ── Add schedule modal ── */
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-end;justify-content:center}
+/* ══ Modal ══ */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)}
 .modal-bg.open{display:flex}
-.modal{background:#fff;border-radius:24px 24px 0 0;padding:20px 20px 40px;width:100%;max-width:430px;max-height:90vh;overflow-y:auto}
-.modal-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px}
+.modal{background:#fff;border-radius:24px 24px 0 0;padding:22px 18px 44px;width:100%;max-width:430px;max-height:92vh;overflow-y:auto}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:18px}
 .modal-section{margin-bottom:14px}
 .modal-label{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}
-.day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
-.day-btn{border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--sub);padding:8px 2px;cursor:pointer;font-size:10px;font-weight:700;text-align:center;transition:.18s}
+.day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.day-btn{border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--sub);padding:8px 2px;cursor:pointer;font-size:10px;font-weight:700;text-align:center;transition:.15s}
 .day-btn.sel{border-color:var(--red);background:#fff0f0;color:var(--red)}
-.time-inp{width:100%;border:1.5px solid var(--border);border-radius:12px;padding:12px;font-size:18px;text-align:center;outline:none;color:var(--text)}
+.time-inp{width:100%;border:1.5px solid var(--border);border-radius:12px;padding:13px;font-size:20px;text-align:center;outline:none;color:var(--text);background:#fff;font-family:'Barlow',sans-serif}
 .time-inp:focus{border-color:var(--red)}
+.power-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pow-btn{border-radius:12px;border:2px solid var(--border);background:#fff;color:var(--sub);padding:13px 8px;cursor:pointer;font-size:15px;font-weight:700;text-align:center;transition:.15s}
+.pow-btn.sel-on {border-color:var(--on); background:#e8f5e9;color:var(--on)}
+.pow-btn.sel-off{border-color:#c62828;background:#fce4ec;color:#c62828}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.sel-inp{border:1.5px solid var(--border);border-radius:12px;padding:11px;font-size:14px;color:var(--text);background:#fff;width:100%;outline:none;-webkit-appearance:none}
+.sel-inp{border:1.5px solid var(--border);border-radius:12px;padding:12px;font-size:14px;color:var(--text);background:#fff;width:100%;outline:none;-webkit-appearance:none}
 .sel-inp:focus{border-color:var(--red)}
-.temp-inp{border:1.5px solid var(--border);border-radius:12px;padding:11px;font-size:14px;color:var(--text);background:#fff;width:100%;outline:none;text-align:center}
+.temp-inp{border:1.5px solid var(--border);border-radius:12px;padding:12px;font-size:14px;color:var(--text);background:#fff;width:100%;outline:none;text-align:center}
 .temp-inp:focus{border-color:var(--red)}
-.save-btn{width:100%;background:var(--red);color:#fff;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:700;cursor:pointer;margin-top:4px}
+.sched-error{font-size:13px;font-weight:600;color:#c62828;background:#fce4ec;border-radius:10px;padding:10px 13px;margin-bottom:10px;display:none;border-left:3px solid #c62828}
+.sched-error.show{display:block}
+.save-btn{width:100%;background:var(--red);color:#fff;border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;margin-top:6px;box-shadow:0 4px 16px rgba(204,0,24,.3);font-family:'Barlow',sans-serif}
 .save-btn:active{opacity:.85}
-.cancel-btn{width:100%;background:var(--border);color:var(--sub);border:none;border-radius:14px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px}
+.cancel-btn{width:100%;background:var(--border);color:var(--sub);border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px;font-family:'Barlow',sans-serif}
 
-/* ── Bottom nav ── */
-.bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--red2);display:flex;padding-bottom:env(safe-area-inset-bottom,0)}
-.nbtn{flex:1;padding:10px 4px 8px;border:none;background:transparent;color:rgba(255,255,255,.55);font-size:9px;font-weight:700;letter-spacing:.5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;text-transform:uppercase}
+/* ══ Bottom nav ══ */
+.bottomnav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;
+  background:linear-gradient(180deg,#a80013 0%,#8c0010 100%);
+  display:flex;padding-bottom:env(safe-area-inset-bottom,0);
+  box-shadow:0 -4px 20px rgba(0,0,0,.3);
+}
+.nbtn{
+  flex:1;padding:10px 4px 9px;border:none;background:transparent;
+  color:rgba(255,255,255,.4);font-size:9px;font-weight:700;
+  letter-spacing:.4px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  text-transform:uppercase;transition:.2s;
+}
 .nbtn.active{color:#fff}
-.nbtn .nico{font-size:19px}
-
-.statusbar{text-align:center;font-size:11px;color:var(--sub);padding:10px 14px}
+.nbtn svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.nbtn .nbar{
+  width:18px;height:3px;border-radius:2px;
+  background:transparent;margin-top:2px;transition:.2s;
+}
+.nbtn.active .nbar{background:rgba(255,255,255,.6)}
 </style>
 </head>
 <body>
 
-<!-- Top bar -->
+<!-- ══ TOPBAR ══ -->
 <div class="topbar">
   <div class="brand">
-    <!-- Mitsubishi Electric logo: 3 proper rhombuses (60° angles), isometric geometry -->
-    <svg viewBox="-2 -2 64 56" width="46" height="40">
-      <!-- Top diamond: points up, inner vertex at center (30,34.6) -->
-      <polygon points="30,34.6 40,17.3 30,0 20,17.3" fill="white"/>
-      <!-- Bottom-left diamond: points down-left -->
-      <polygon points="30,34.6 10,34.6 0,51.9 20,51.9" fill="white"/>
-      <!-- Bottom-right diamond: points down-right -->
-      <polygon points="30,34.6 50,34.6 60,51.9 40,51.9" fill="white"/>
+    <svg viewBox="-2 -2 64 56" width="42" height="36">
+      <polygon points="30,33 39,17 30,1 21,17" fill="white"/>
+      <polygon points="30,33 11,33 2,50 21,50" fill="white"/>
+      <polygon points="30,33 49,33 58,50 39,50" fill="white"/>
     </svg>
     <div class="brand-txt">
       <div class="name">Mitsubishi Electric</div>
@@ -175,109 +308,108 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
   </div>
 </div>
 
-<!-- ══════════ KONTROL TAB ══════════ -->
-<div id="tabControl" class="tab-content active">
-
+<!-- ══ MAIN CARD ══ -->
 <div class="main">
-  <div class="main-inner">
+<div class="main-inner">
 
-    <!-- Sıcaklıklar -->
-    <div class="temps">
-      <div class="temp-box">
-        <div class="val" id="roomVal">--<sup>°</sup></div>
-        <div class="lbl">Oda</div>
-      </div>
-      <div class="temp-box">
-        <div class="val" id="outVal">--<sup>°</sup></div>
-        <div class="lbl">Dış Ortam</div>
-      </div>
-    </div>
-
-    <!-- Güç + durum + hedef -->
-    <div class="pwr-row">
-      <button class="pwr-btn" id="pwrBtn" onclick="togglePower()">
-        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M12 2v10M6.3 5A8 8 0 1 0 17.7 5"/>
-        </svg>
-      </button>
-      <div class="pwr-info">
-        <div class="pwr-status" id="pwrTxt">KAPALI</div>
-        <div class="mode-chip" id="modeChip">—</div>
-      </div>
-      <div class="settemp-box">
-        <div class="settemp-val" id="setVal">22.0°</div>
-        <div class="settemp-lbl">Hedef</div>
-      </div>
-    </div>
-
-    <div class="settemp-row">
-      <button class="tbtn" onclick="changeTemp(-0.5)">−</button>
-      <span style="font-size:11px;color:var(--sub)">Sıcaklık Ayarla</span>
-      <button class="tbtn" onclick="changeTemp(+0.5)">+</button>
+  <!-- Circular Thermostat -->
+  <div class="thermo-wrap">
+    <svg class="thermo-svg" viewBox="0 0 210 210" style="transform:rotate(135deg);overflow:visible">
+      <!-- Track arc: 270° -->
+      <circle id="arcTrack" cx="105" cy="105" r="88"
+        fill="none" stroke="#e9ecef" stroke-width="11"
+        stroke-dasharray="415.5 553.3" stroke-linecap="round"/>
+      <!-- Fill arc -->
+      <circle id="arcFill" cx="105" cy="105" r="88"
+        fill="none" stroke="#1565c0" stroke-width="11"
+        stroke-dasharray="0 553.3" stroke-linecap="round"
+        style="transition:stroke-dasharray .4s,stroke .4s"/>
+    </svg>
+    <div class="thermo-center">
+      <div class="tc-set" id="setVal">22<sub>°</sub></div>
+      <div class="tc-label">Hedef</div>
+      <div class="tc-room" id="roomTxt">Oda: --°</div>
     </div>
   </div>
-</div>
 
-<!-- Mod -->
+  <!-- Temp buttons -->
+  <div class="thermo-btns">
+    <button class="thermo-btn"
+      ontouchstart="startChg(-0.5)" ontouchend="stopChg()" ontouchcancel="stopChg()"
+      onmousedown="startChg(-0.5)" onmouseup="stopChg()" onmouseleave="stopChg()">−</button>
+    <button class="thermo-btn"
+      ontouchstart="startChg(+0.5)" ontouchend="stopChg()" ontouchcancel="stopChg()"
+      onmousedown="startChg(+0.5)" onmouseup="stopChg()" onmouseleave="stopChg()">+</button>
+  </div>
+
+  <!-- Power row -->
+  <div class="pwr-row">
+    <button class="pwr-btn" id="pwrBtn" onclick="togglePower()">
+      <svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round">
+        <path d="M12 2v10M6.3 5A8 8 0 1 0 17.7 5"/>
+      </svg>
+    </button>
+    <div class="pwr-info">
+      <div class="pwr-status" id="pwrTxt">KAPALI</div>
+      <div class="mode-chip" id="modeChip">—</div>
+    </div>
+  </div>
+
+  <!-- Sub info: outdoor + humidity -->
+  <div class="sub-row">
+    <div class="sub-box">
+      <div class="sub-icon">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </div>
+      <div class="sub-text">
+        <div class="sub-val" id="outVal">--°</div>
+        <div class="sub-lbl">Dış Ortam</div>
+      </div>
+    </div>
+    <div class="sub-box hum-box">
+      <div class="sub-icon">
+        <svg viewBox="0 0 24 24" width="16" height="18" fill="#1565c0" opacity=".6"><path d="M12 2C12 2 5 10 5 15a7 7 0 0 0 14 0C19 10 12 2 12 2z"/></svg>
+      </div>
+      <div class="sub-text">
+        <div class="sub-val" id="humVal" style="color:#1565c0">--%</div>
+        <div class="sub-lbl">Nem</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div><!-- end main -->
+
+
+<!-- ══════════ TAB: KONTROL ══════════ -->
+<div id="tabControl" class="tab-content active">
+
 <div class="sec">
   <div class="sec-title">Çalışma Modu</div>
   <div class="mode-grid">
     <button class="mbtn" id="mHEAT" onclick="setMode('HEAT',1)">
-      <!-- Sun with 8 rays — Mitsubishi/MELCloud heat icon -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-        <circle cx="12" cy="12" r="4"/>
-        <line x1="12" y1="2" x2="12" y2="5"/>
-        <line x1="12" y1="19" x2="12" y2="22"/>
-        <line x1="2" y1="12" x2="5" y2="12"/>
-        <line x1="19" y1="12" x2="22" y2="12"/>
-        <line x1="4.9" y1="4.9" x2="7.1" y2="7.1"/>
-        <line x1="16.9" y1="16.9" x2="19.1" y2="19.1"/>
-        <line x1="19.1" y1="4.9" x2="16.9" y2="7.1"/>
-        <line x1="4.9" y1="19.1" x2="7.1" y2="16.9"/>
-      </svg>ISITMA
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="7.1" y2="7.1"/><line x1="16.9" y1="16.9" x2="19.1" y2="19.1"/><line x1="19.1" y1="4.9" x2="16.9" y2="7.1"/><line x1="4.9" y1="19.1" x2="7.1" y2="16.9"/></svg>
+      ISITMA
     </button>
     <button class="mbtn" id="mCOOL" onclick="setMode('COOL',3)">
-      <!-- 6-arm snowflake with branch ticks -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-        <line x1="12" y1="2" x2="12" y2="22"/>
-        <line x1="3.3" y1="7" x2="20.7" y2="17"/>
-        <line x1="20.7" y1="7" x2="3.3" y2="17"/>
-        <line x1="9.5" y1="4.5" x2="12" y2="7.5"/><line x1="14.5" y1="4.5" x2="12" y2="7.5"/>
-        <line x1="9.5" y1="19.5" x2="12" y2="16.5"/><line x1="14.5" y1="19.5" x2="12" y2="16.5"/>
-        <line x1="4.2" y1="10" x2="7.2" y2="10.8"/><line x1="4.2" y1="14" x2="7.2" y2="13.2"/>
-        <line x1="19.8" y1="10" x2="16.8" y2="10.8"/><line x1="19.8" y1="14" x2="16.8" y2="13.2"/>
-      </svg>SOĞUTMA
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="3.3" y1="7" x2="20.7" y2="17"/><line x1="20.7" y1="7" x2="3.3" y2="17"/><line x1="9.5" y1="4.5" x2="12" y2="7.5"/><line x1="14.5" y1="4.5" x2="12" y2="7.5"/><line x1="9.5" y1="19.5" x2="12" y2="16.5"/><line x1="14.5" y1="19.5" x2="12" y2="16.5"/><line x1="4.2" y1="10" x2="7.2" y2="10.8"/><line x1="4.2" y1="14" x2="7.2" y2="13.2"/><line x1="19.8" y1="10" x2="16.8" y2="10.8"/><line x1="19.8" y1="14" x2="16.8" y2="13.2"/></svg>
+      SOĞUTMA
     </button>
     <button class="mbtn" id="mAUTO" onclick="setMode('AUTO',8)">
-      <!-- Up+down arrows = auto/smart mode -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="17 1 21 5 17 9"/>
-        <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-        <polyline points="7 23 3 19 7 15"/>
-        <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-      </svg>OTO
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      OTO
     </button>
     <button class="mbtn" id="mDRY" onclick="setMode('DRY',2)">
-      <!-- Water drop -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 3C12 3 5.5 10.5 5.5 15a6.5 6.5 0 0 0 13 0C18.5 10.5 12 3 12 3z"/>
-        <line x1="9.5" y1="16" x2="9.5" y2="16.1"/>
-        <line x1="12" y1="17.5" x2="12" y2="17.6"/>
-      </svg>KURUTMA
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3C12 3 5.5 10.5 5.5 15a6.5 6.5 0 0 0 13 0C18.5 10.5 12 3 12 3z"/></svg>
+      KURUTMA
     </button>
     <button class="mbtn" id="mFAN" onclick="setMode('FAN',7)">
-      <!-- 3-blade fan — clean rounded blades -->
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <circle cx="12" cy="12" r="1.6"/>
-        <path d="M12,10.4 C11.1,8.5 9.5,7 7.5,6.8 C5.5,6.5 4.2,8 4.8,9.8 C5.4,11.6 8.4,12.2 10.7,11.5 Z"/>
-        <path d="M13.6,11.5 C15.4,12.7 17.6,13 19.2,12 C20.8,11 20.8,9.1 19.4,8.1 C18,7.1 15.3,8.3 14,10.4 Z" transform="rotate(120,12,12)"/>
-        <path d="M10.4,12.5 C8.8,14.1 8.3,16.3 9.3,17.8 C10.3,19.3 12.2,19.3 13.4,18 C14.6,16.7 13.8,14 12,12.5 Z" transform="rotate(240,12,12)"/>
-      </svg>FAN
+      <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="1.6"/><path d="M12,10.4 C11.1,8.5 9.5,7 7.5,6.8 C5.5,6.5 4.2,8 4.8,9.8 C5.4,11.6 8.4,12.2 10.7,11.5 Z"/><path d="M13.6,11.5 C15.4,12.7 17.6,13 19.2,12 C20.8,11 20.8,9.1 19.4,8.1 C18,7.1 15.3,8.3 14,10.4 Z" transform="rotate(120,12,12)"/><path d="M10.4,12.5 C8.8,14.1 8.3,16.3 9.3,17.8 C10.3,19.3 12.2,19.3 13.4,18 C14.6,16.7 13.8,14 12,12.5 Z" transform="rotate(240,12,12)"/></svg>
+      FAN
     </button>
   </div>
 </div>
 
-<!-- Fan -->
 <div class="sec">
   <div class="sec-title">Fan Hızı</div>
   <div class="pills">
@@ -290,7 +422,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
   </div>
 </div>
 
-<!-- Dikey yön -->
 <div class="sec">
   <div class="sec-title">Dikey Yön</div>
   <div class="vrow">
@@ -304,7 +435,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
   </div>
 </div>
 
-<!-- Yatay yön -->
 <div class="sec">
   <div class="sec-title">Yatay Yön</div>
   <div class="vrow">
@@ -318,7 +448,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
   </div>
 </div>
 
-<!-- Durum -->
+<div class="sec">
+  <div class="sec-title">Özel Fonksiyonlar</div>
+  <div class="fn-grid">
+    <div class="fn-card" id="fnIsee" onclick="toggleISee()">
+      <div class="fn-icon"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+      <div class="fn-name">i-see</div>
+      <div class="fn-badge" id="badgeIsee">Pasif</div>
+    </div>
+    <div class="fn-card fn-plasma" id="fnPlasma" onclick="togglePlasma()">
+      <div class="fn-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      <div class="fn-name">Plasma</div>
+      <div class="fn-badge" id="badgePlasma">Pasif</div>
+    </div>
+    <div class="fn-card fn-clean" id="fnClean" onclick="triggerClean()">
+      <div class="fn-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <div class="fn-name">Temizlik</div>
+      <div class="fn-badge" id="badgeClean">Başlat</div>
+    </div>
+  </div>
+</div>
+
 <div class="sec">
   <div class="sec-title">Cihaz Durumu</div>
   <div class="info-grid">
@@ -332,7 +482,67 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 </div><!-- end tabControl -->
 
 
-<!-- ══════════ PROGRAM TAB ══════════ -->
+<!-- ══════════ TAB: DIŞ ÜNİTE ══════════ -->
+<div id="tabOutdoor" class="tab-content">
+  <div class="ou-header">
+    <div class="ou-title">Dış Ünite Verileri</div>
+    <div class="ou-sub">Anlık sistem bilgileri</div>
+  </div>
+  <div class="data-grid">
+    <div class="data-card">
+      <div class="dc-label">Dış Ortam</div>
+      <div class="dc-val" id="dcOutTemp">--<sup>°</sup></div>
+      <div class="dc-sub">Dış hava sıcaklığı</div>
+      <span class="dc-badge soon" id="dcOutBadge">CN105 yakında</span>
+    </div>
+    <div class="data-card">
+      <div class="dc-label">Kompresör</div>
+      <div class="dc-status" id="dcComp">Beklemede</div>
+      <div class="dc-sub" id="dcCompSub">Çalışmıyor</div>
+      <span class="dc-badge off" id="dcCompBadge">Pasif</span>
+    </div>
+    <div class="data-card">
+      <div class="dc-label">İç Ünite</div>
+      <div class="dc-val" id="dcRoomTemp">--<sup>°</sup></div>
+      <div class="dc-sub">CN105 oda sensörü</div>
+    </div>
+    <div class="data-card">
+      <div class="dc-label">Nem · SHT31</div>
+      <div class="dc-val" id="dcHumidity">--<span class="dcu">%</span></div>
+      <div class="dc-sub" id="dcHumSub">I2C GPIO21/22</div>
+    </div>
+    <div class="data-card future">
+      <div class="dc-label">Komp. Frekansı</div>
+      <div class="dc-val">--<span class="dcu"> Hz</span></div>
+      <div class="dc-sub">Kompresör hızı</div>
+      <span class="dc-badge soon">Firmware gerekli</span>
+    </div>
+    <div class="data-card future">
+      <div class="dc-label">Emış Sıcaklığı</div>
+      <div class="dc-val">--<sup>°</sup></div>
+      <div class="dc-sub">Soğutucu giriş</div>
+      <span class="dc-badge soon">Firmware gerekli</span>
+    </div>
+    <div class="data-card future">
+      <div class="dc-label">Çıkış Sıcaklığı</div>
+      <div class="dc-val">--<sup>°</sup></div>
+      <div class="dc-sub">Soğutucu çıkış</div>
+      <span class="dc-badge soon">Firmware gerekli</span>
+    </div>
+    <div class="data-card future">
+      <div class="dc-label">V / A</div>
+      <div class="dc-val" style="font-size:18px">-- / --</div>
+      <div class="dc-sub">Gerilim / Akım</div>
+      <span class="dc-badge soon">Firmware gerekli</span>
+    </div>
+  </div>
+  <div class="ou-note">
+    <p>Kompresör frekansı, emış/çıkış sıcaklıkları ve V/A değerleri için CN105 extended packet desteği gerekiyor. SHT31 bağlandıktan sonra nem verisi burada ve ana ekranda görünecek.</p>
+  </div>
+</div><!-- end tabOutdoor -->
+
+
+<!-- ══════════ TAB: PROGRAM ══════════ -->
 <div id="tabSchedule" class="tab-content">
   <div class="sched-header">
     <div class="sched-title">Haftalık Program</div>
@@ -341,14 +551,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
   <div class="sched-list" id="schedList">
     <div class="no-sched" id="noSched">Henüz program eklenmedi.<br>+ butonuna bas.</div>
   </div>
-</div>
+</div><!-- end tabSchedule -->
 
 
-<!-- ══════════ PROGRAM EKLE MODAL ══════════ -->
+<!-- ══════════ MODAL ══════════ -->
 <div class="modal-bg" id="modalBg" onclick="closeModalBg(event)">
   <div class="modal">
     <div class="modal-title">Program Ekle</div>
-
     <div class="modal-section">
       <div class="modal-label">Günler</div>
       <div class="day-grid">
@@ -361,34 +570,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
         <button class="day-btn" data-d="0">Paz</button>
       </div>
     </div>
-
     <div class="modal-section">
       <div class="modal-label">Saat</div>
       <input type="time" class="time-inp" id="schedTime" value="07:00">
     </div>
-
     <div class="modal-section">
       <div class="modal-label">İşlem</div>
-      <div class="row2">
-        <select class="sel-inp" id="schedPower">
-          <option value="on">Aç</option>
-          <option value="off">Kapat</option>
-        </select>
-        <select class="sel-inp" id="schedMode">
-          <option value="HEAT">Isıtma</option>
-          <option value="COOL">Soğutma</option>
-          <option value="AUTO">Otomatik</option>
-          <option value="DRY">Kurutma</option>
-          <option value="FAN">Fan</option>
-        </select>
+      <div class="power-row">
+        <button class="pow-btn sel-on"  id="powBtnOn"  onclick="selectSchedPower('on')">✓ Aç</button>
+        <button class="pow-btn"         id="powBtnOff" onclick="selectSchedPower('off')">Kapat</button>
       </div>
     </div>
-
-    <div class="modal-section">
-      <div class="modal-label">Hedef Sıcaklık</div>
-      <input type="number" class="temp-inp" id="schedTemp" value="22" min="16" max="31" step="0.5">
+    <div id="modalModeRow">
+      <div class="modal-section">
+        <div class="modal-label">Mod ve Hedef Sıcaklık</div>
+        <div class="row2">
+          <select class="sel-inp" id="schedMode">
+            <option value="HEAT">Isıtma</option>
+            <option value="COOL">Soğutma</option>
+            <option value="AUTO">Otomatik</option>
+            <option value="DRY">Kurutma</option>
+            <option value="FAN">Fan</option>
+          </select>
+          <input type="number" class="temp-inp" id="schedTemp" value="22" min="16" max="31" step="0.5">
+        </div>
+      </div>
     </div>
-
+    <div class="sched-error" id="schedError"></div>
     <button class="save-btn" onclick="saveSchedule()">Kaydet</button>
     <button class="cancel-btn" onclick="closeModal()">İptal</button>
   </div>
@@ -398,85 +606,151 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 <!-- ══════════ BOTTOM NAV ══════════ -->
 <div class="bottomnav">
   <button class="nbtn active" id="nb0" onclick="switchTab(0)">
-    <span class="nico">🏠</span>Kontrol
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Kontrol
+    <div class="nbar"></div>
   </button>
   <button class="nbtn" id="nb1" onclick="switchTab(1)">
-    <span class="nico">📅</span>Program
+    <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8v4h8z"/><circle cx="12" cy="14" r="2.5"/></svg>
+    Dış Ünite
+    <div class="nbar"></div>
+  </button>
+  <button class="nbtn" id="nb2" onclick="switchTab(2)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8.01" y2="14"/><line x1="12" y1="14" x2="12.01" y2="14"/><line x1="16" y1="14" x2="16.01" y2="14"/></svg>
+    Program
+    <div class="nbar"></div>
   </button>
 </div>
 
 
 <script>
 // ── MQTT ──
-const BROKER='wss://broker.emqx.io:8084/mqtt', MAC='D48AFC9E85C8';
-const T_ST='mits/'+MAC+'/status', T_CMD='mits/'+MAC+'/cmd';
+const BROKER = 'wss://broker.emqx.io:8084/mqtt';
+const MAC    = 'D48AFC9E85C8';
+const T_ST   = 'mits/'+MAC+'/status';
+const T_CMD  = 'mits/'+MAC+'/cmd';
 
-let ac={power:false,mode:'COOL',setTemp:22,fan:'AUTO',vane:'AUTO',wideVane:'|',
-        roomTemp:null,outTemp:null,iSee:false,operating:false,cn105:false};
+let ac = {
+  power:false, mode:'COOL', setTemp:22,
+  fan:'AUTO', vane:'AUTO', wideVane:'|',
+  roomTemp:null, outTemp:null, humidity:null, sensorTemp:null,
+  iSee:false, plasma:false, operating:false, cn105:false
+};
 
+// Arc constants: r=88, C=2*PI*88=553.3, 270°=553.3*0.75=415.0
+const ARC_C   = 553.3;
+const ARC_LEN = 415.0;
+
+const ARC_COLORS = {
+  HEAT:'#d84315', COOL:'#1565c0', DRY:'#6a1b9a', FAN:'#00695c', AUTO:'#4527a0'
+};
+
+function updateArc(){
+  const pct = (Math.min(31,Math.max(16,ac.setTemp))-16)/15;
+  const filled = pct * ARC_LEN;
+  const el = document.getElementById('arcFill');
+  el.style.strokeDasharray = filled+' '+ARC_C;
+  el.setAttribute('stroke', ARC_COLORS[ac.mode]||'#1565c0');
+}
+
+// Locks
 const locks={};
 function lock(...fs){fs.forEach(f=>{clearTimeout(locks[f]);locks[f]=setTimeout(()=>delete locks[f],8000);})}
 function locked(f){return !!locks[f]}
 
-const client=mqtt.connect(BROKER,{clientId:'app_'+Math.random().toString(36).slice(2,8),clean:true,reconnectPeriod:3000,connectTimeout:8000});
-client.on('connect',()=>{setConn('ok','Bağlı');client.subscribe(T_ST);});
-client.on('close',()=>setConn('err','Bağlantı yok'));
-client.on('reconnect',()=>setConn('','Bağlanıyor'));
+const client = mqtt.connect(BROKER,{
+  clientId:'app_'+Math.random().toString(36).slice(2,8),
+  clean:true,reconnectPeriod:3000,connectTimeout:8000
+});
+client.on('connect',  ()=>{setConn('ok','Bağlı');client.subscribe(T_ST);});
+client.on('close',    ()=> setConn('err','Bağlantı yok'));
+client.on('reconnect',()=> setConn('','Bağlanıyor'));
 client.on('message',(t,p)=>{
   try{
     const d=JSON.parse(p.toString());
-    if(!locked('power')    && d.power!=null)    ac.power    =d.power===true||d.power==='ON';
-    if(!locked('mode')     && d.mode!=null)     ac.mode     =d.mode;
-    if(!locked('setTemp')  && d.setTemp!=null)  ac.setTemp  =+d.setTemp;
-    if(!locked('fan')      && d.fan!=null)      ac.fan      =d.fan;
-    if(!locked('vane')     && d.vane!=null)     ac.vane     =d.vane;
-    if(!locked('wideVane') && d.wideVane!=null) ac.wideVane =d.wideVane;
-    if(d.roomTemp!=null) ac.roomTemp =+d.roomTemp;
-    if(d.outTemp!=null)  ac.outTemp  =+d.outTemp;
-    if(d.iSee!=null)     ac.iSee     =d.iSee;
-    if(d.operating!=null)ac.operating=d.operating;
-    if(d.cn105!=null)    ac.cn105    =d.cn105;
+    if(!locked('power')    && d.power    !=null) ac.power    =d.power===true||d.power==='ON';
+    if(!locked('mode')     && d.mode     !=null) ac.mode     =d.mode;
+    if(!locked('setTemp')  && d.setTemp  !=null) ac.setTemp  =+d.setTemp;
+    if(!locked('fan')      && d.fan      !=null) ac.fan      =d.fan;
+    if(!locked('vane')     && d.vane     !=null) ac.vane     =d.vane;
+    if(!locked('wideVane') && d.wideVane !=null) ac.wideVane =d.wideVane;
+    if(!locked('iSee')     && d.iSee     !=null) ac.iSee     =d.iSee;
+    if(d.roomTemp  !=null) ac.roomTemp  =+d.roomTemp;
+    if(d.outTemp   !=null) ac.outTemp   =+d.outTemp;
+    if(d.humidity  !=null) ac.humidity  =+d.humidity;
+    if(d.sensorTemp!=null) ac.sensorTemp=+d.sensorTemp;
+    if(d.operating !=null) ac.operating =d.operating;
+    if(d.cn105     !=null) ac.cn105     =d.cn105;
     renderAll();
-    setStatus('Güncellendi '+new Date().toLocaleTimeString('tr-TR'));
+    setStatus('Güncellendi · '+new Date().toLocaleTimeString('tr-TR'));
   }catch(e){}
 });
 function send(o){lock(...Object.keys(o));client.publish(T_CMD,JSON.stringify(o));}
 
 // ── Actions ──
 function togglePower(){ac.power=!ac.power;send({power:ac.power});renderPower();}
-let tTimer=null;
+
+let tTimer=null, tInterval=null;
+function startChg(d){
+  changeTemp(d);
+  tInterval=setInterval(()=>changeTemp(d),180);
+}
+function stopChg(){
+  clearInterval(tInterval);tInterval=null;
+}
 function changeTemp(d){
   ac.setTemp=Math.round((Math.min(31,Math.max(16,ac.setTemp+d))*2))/2;
   lock('setTemp');renderTemp();
   clearTimeout(tTimer);tTimer=setTimeout(()=>send({setTemp:ac.setTemp}),400);
 }
 const MNUM={HEAT:1,COOL:3,AUTO:8,DRY:2,FAN:7};
-function setMode(s,n){ac.mode=s;send({mode:n});renderMode();}
-function setFan(s){ac.fan=s;send({fan:s});renderFan();}
-function setVane(v){ac.vane=v;send({vane:v});renderVane();}
-function setWVane(v){ac.wideVane=v;send({wideVane:v});renderWVane();}
+function setMode(s,n){ac.mode=s;send({mode:n});renderMode();updateArc();}
+function setFan(s)   {ac.fan=s;  send({fan:s});   renderFan();}
+function setVane(v)  {ac.vane=v; send({vane:v});  renderVane();}
+function setWVane(v) {ac.wideVane=v;send({wideVane:v});renderWVane();}
+function toggleISee()  {ac.iSee=!ac.iSee;send({iSee:ac.iSee});renderFunctions();}
+function togglePlasma(){ac.plasma=!ac.plasma;send({plasma:ac.plasma});renderFunctions();}
+function triggerClean(){
+  if(!confirm('Temizlik modunu başlatmak istiyor musunuz?'))return;
+  send({clean:true});
+  const b=document.getElementById('badgeClean');
+  b.textContent='Gönderildi';b.style.cssText='background:#e0f2f1;color:#00695c';
+  setTimeout(()=>{b.textContent='Başlat';b.style.cssText='';},3000);
+}
 
 // ── Render ──
-function renderAll(){renderPower();renderTemp();renderMode();renderFan();renderVane();renderWVane();renderInfo();}
-const MCOL={HEAT:'heat',COOL:'cool',DRY:'dry',FAN:'fan',AUTO:'auto'};
+function renderAll(){renderPower();renderTemp();renderMode();renderFan();renderVane();renderWVane();renderFunctions();renderInfo();renderOutdoor();}
+
+const MCOL ={HEAT:'heat',COOL:'cool',DRY:'dry',FAN:'fan',AUTO:'auto'};
 const MNAME={HEAT:'Isıtma',COOL:'Soğutma',DRY:'Kurutma',FAN:'Fan',AUTO:'Otomatik'};
-const MICO={HEAT:'☀',COOL:'❄',DRY:'💧',FAN:'💨',AUTO:'↻'};
+const MICO ={HEAT:'☀',COOL:'❄',DRY:'💧',FAN:'💨',AUTO:'↻'};
 
 function renderPower(){
-  const b=document.getElementById('pwrBtn'),t=document.getElementById('pwrTxt'),c=document.getElementById('modeChip');
+  const b=document.getElementById('pwrBtn');
+  const t=document.getElementById('pwrTxt');
+  const c=document.getElementById('modeChip');
   b.classList.toggle('on',ac.power);
-  t.textContent=ac.power?'AÇIK':'KAPALI'; t.className='pwr-status'+(ac.power?' on':'');
+  t.textContent=ac.power?'AÇIK':'KAPALI';
+  t.className='pwr-status'+(ac.power?' on':'');
   c.textContent=(MICO[ac.mode]||'')+' '+(MNAME[ac.mode]||ac.mode);
   c.className='mode-chip '+(MCOL[ac.mode]||'');
 }
 function renderTemp(){
-  document.getElementById('roomVal').innerHTML=(ac.roomTemp&&ac.roomTemp>0?ac.roomTemp.toFixed(1):'--')+'<sup>°</sup>';
-  document.getElementById('outVal').innerHTML=(ac.outTemp!=null&&ac.outTemp>-50?ac.outTemp.toFixed(1):'--')+'<sup>°</sup>';
-  document.getElementById('setVal').textContent=ac.setTemp.toFixed(1)+'°';
+  const fmtT=(v,min=-90)=>(v!=null&&v>min)?v.toFixed(1)+'°':'--°';
+  document.getElementById('setVal').innerHTML=
+    ac.setTemp.toFixed(1)+'<sub>°</sub>';
+  document.getElementById('roomTxt').textContent=
+    'Oda: '+(ac.roomTemp!=null&&ac.roomTemp>-90?ac.roomTemp.toFixed(1)+'°':'--°');
+  document.getElementById('outVal').textContent=fmtT(ac.outTemp,-50);
+  const h=ac.humidity;
+  document.getElementById('humVal').textContent=
+    (h!=null&&h>=0)?h.toFixed(0)+'%':'--%';
+  updateArc();
 }
 function renderMode(){
   ['HEAT','COOL','AUTO','DRY','FAN'].forEach(m=>{
-    const e=document.getElementById('m'+m);if(e)e.className='mbtn'+(ac.mode===m?' sel-'+MCOL[m]:'');
+    const e=document.getElementById('m'+m);
+    if(e)e.className='mbtn'+(ac.mode===m?' sel-'+MCOL[m]:'');
   });
 }
 function renderFan(){
@@ -494,57 +768,91 @@ function renderWVane(){
     const e=document.getElementById('w'+v);if(e)e.classList.toggle('sel',ac.wideVane===v);
   });
 }
+function renderFunctions(){
+  const fi=document.getElementById('fnIsee');
+  const bi=document.getElementById('badgeIsee');
+  fi.classList.toggle('fn-on',ac.iSee);
+  bi.textContent=ac.iSee?'Aktif':'Pasif';
+  const fp=document.getElementById('fnPlasma');
+  const bp=document.getElementById('badgePlasma');
+  fp.classList.toggle('fn-on',ac.plasma);
+  bp.textContent=ac.plasma?'Aktif':'Pasif';
+}
 function renderInfo(){
   const c=document.getElementById('ivComp');
-  c.textContent=ac.operating?'Çalışıyor':'Beklemede';c.style.color=ac.operating?'var(--heat)':'var(--sub)';
+  c.textContent=ac.operating?'Çalışıyor':'Beklemede';
+  c.style.color=ac.operating?'var(--heat)':'var(--sub)';
   const i=document.getElementById('ivIsee');
-  i.textContent=ac.iSee?'Aktif':'Pasif';i.style.color=ac.iSee?'var(--on)':'var(--sub)';
+  i.textContent=ac.iSee?'Aktif':'Pasif';
+  i.style.color=ac.iSee?'var(--on)':'var(--sub)';
   const n=document.getElementById('ivCn');
-  n.textContent=ac.cn105?'Bağlı':'Yok';n.style.color=ac.cn105?'var(--on)':'#c62828';
+  n.textContent=ac.cn105?'Bağlı':'Yok';
+  n.style.color=ac.cn105?'var(--on)':'#c62828';
 }
-function setConn(s,l){document.getElementById('connDot').className='conn-dot '+s;document.getElementById('connTxt').textContent=l;}
+function renderOutdoor(){
+  const fmtT=(v,min=-90)=>(v!=null&&v>min)?v.toFixed(1):'--';
+  document.getElementById('dcOutTemp').innerHTML=fmtT(ac.outTemp,-50)+'<sup>°</sup>';
+  document.getElementById('dcOutBadge').style.display=(ac.outTemp!=null&&ac.outTemp>-50)?'none':'inline-block';
+  const cc=document.getElementById('dcComp');
+  const cs=document.getElementById('dcCompSub');
+  const cb=document.getElementById('dcCompBadge');
+  cc.textContent=ac.operating?'Çalışıyor':'Beklemede';
+  cc.style.color=ac.operating?'var(--heat)':'var(--sub)';
+  cs.textContent=ac.operating?'Kompresör devrede':'Kompresör beklemede';
+  cb.textContent=ac.operating?'Aktif':'Pasif';
+  cb.className='dc-badge '+(ac.operating?'active':'off');
+  document.getElementById('dcRoomTemp').innerHTML=fmtT(ac.roomTemp)+'<sup>°</sup>';
+  const h=ac.humidity;
+  document.getElementById('dcHumidity').innerHTML=(h!=null&&h>=0)?h.toFixed(1)+'<span class="dcu">%</span>':'--<span class="dcu">%</span>';
+  document.getElementById('dcHumSub').textContent=
+    (h!=null&&h>=0&&ac.sensorTemp!=null)
+      ?'SHT31 · '+ac.sensorTemp.toFixed(1)+'°C'
+      :'SHT31 I2C (GPIO21/22)';
+}
+function setConn(s,l){
+  document.getElementById('connDot').className='conn-dot '+s;
+  document.getElementById('connTxt').textContent=l;
+}
 function setStatus(t){document.getElementById('statusBar').textContent=t;}
 
 // ── Tabs ──
 function switchTab(i){
-  document.getElementById('tabControl').classList.toggle('active',i===0);
-  document.getElementById('tabSchedule').classList.toggle('active',i===1);
-  document.getElementById('nb0').classList.toggle('active',i===0);
-  document.getElementById('nb1').classList.toggle('active',i===1);
+  ['tabControl','tabOutdoor','tabSchedule'].forEach((id,j)=>{
+    document.getElementById(id).classList.toggle('active',j===i);
+    document.getElementById('nb'+j).classList.toggle('active',j===i);
+  });
 }
 
 // ── Schedule ──
 const DAYS=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
 let schedules=JSON.parse(localStorage.getItem('klimaSchedules')||'[]');
 let selDays=new Set();
+let selPower='on';
 let lastFired={};
 
 function saveScheds(){localStorage.setItem('klimaSchedules',JSON.stringify(schedules));}
+
 function renderSchedules(){
   const list=document.getElementById('schedList');
   const ns=document.getElementById('noSched');
-  if(!schedules.length){ns.style.display='block';list.innerHTML='';list.appendChild(ns);return;}
+  if(!schedules.length){list.innerHTML='';list.appendChild(ns);ns.style.display='block';return;}
   ns.style.display='none';
-  // Group by day
   const byDay={};
-  schedules.forEach((s,i)=>{
-    s.days.forEach(d=>{if(!byDay[d])byDay[d]=[];byDay[d].push({s,i});});
-  });
+  schedules.forEach((s,i)=>{s.days.forEach(d=>{if(!byDay[d])byDay[d]=[];byDay[d].push({s,i});});});
   list.innerHTML='';
-  // Sort: Mon-Sun (1-6, 0)
   [1,2,3,4,5,6,0].forEach(d=>{
     if(!byDay[d])return;
-    const grp=document.createElement('div');grp.className='sched-day-group';
+    const grp=document.createElement('div');
+    grp.className='sched-day-group';
     grp.innerHTML='<div class="sched-day-label">'+DAYS[d]+'</div>';
-    byDay[d].forEach(({s,i})=>{
-      const pw=s.power==='on'?'Aç':'Kapat';
-      const info=s.power==='on'?pw+' · '+MNAME[s.mode]+' · '+s.temp+'°':'pw';
+    byDay[d].sort((a,b)=>a.s.time.localeCompare(b.s.time)).forEach(({s,i})=>{
+      const info=s.power==='on'?'Aç · '+(MNAME[s.mode]||s.mode)+' · '+s.temp+'°':'Kapat';
       const item=document.createElement('div');
       item.className='sched-item'+(s.active?'':' inactive');
       item.innerHTML=`
         <div class="sched-left">
           <div class="sched-time">${s.time}</div>
-          <div class="sched-info">${s.power==='on'?'Aç · '+MNAME[s.mode]+' · '+s.temp+'°':'Kapat'}</div>
+          <div class="sched-info">${info}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
           <button class="sched-toggle${s.active?' on':''}" onclick="toggleSched(${i})"></button>
@@ -559,16 +867,27 @@ function toggleSched(i){schedules[i].active=!schedules[i].active;saveScheds();re
 function delSched(i){schedules.splice(i,1);saveScheds();renderSchedules();}
 
 function openModal(){
-  selDays=new Set();
+  selDays=new Set();selPower='on';
   document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('sel'));
   document.getElementById('schedTime').value='07:00';
-  document.getElementById('schedPower').value='on';
   document.getElementById('schedMode').value='HEAT';
   document.getElementById('schedTemp').value='22';
+  document.getElementById('schedError').classList.remove('show');
+  selectSchedPower('on');
   document.getElementById('modalBg').classList.add('open');
 }
 function closeModal(){document.getElementById('modalBg').classList.remove('open');}
 function closeModalBg(e){if(e.target===document.getElementById('modalBg'))closeModal();}
+
+function selectSchedPower(p){
+  selPower=p;
+  document.getElementById('powBtnOn').className ='pow-btn'+(p==='on' ?' sel-on':'');
+  document.getElementById('powBtnOff').className='pow-btn'+(p==='off'?' sel-off':'');
+  document.getElementById('modalModeRow').style.display=p==='on'?'block':'none';
+  // update button labels
+  document.getElementById('powBtnOn').textContent  = p==='on'  ? '✓ Aç'   : 'Aç';
+  document.getElementById('powBtnOff').textContent = p==='off' ? '✓ Kapat': 'Kapat';
+}
 
 document.querySelectorAll('.day-btn').forEach(b=>{
   b.addEventListener('click',()=>{
@@ -578,14 +897,17 @@ document.querySelectorAll('.day-btn').forEach(b=>{
   });
 });
 
+function showSchedError(msg){
+  const e=document.getElementById('schedError');
+  e.textContent=msg;e.classList.add('show');
+}
 function saveSchedule(){
-  if(!selDays.size){alert('En az bir gün seç');return;}
+  document.getElementById('schedError').classList.remove('show');
+  if(!selDays.size){showSchedError('En az bir gün seçin.');return;}
   const t=document.getElementById('schedTime').value;
-  if(!t){alert('Saat seç');return;}
+  if(!t){showSchedError('Lütfen bir saat seçin.');return;}
   schedules.push({
-    days:[...selDays],
-    time:t,
-    power:document.getElementById('schedPower').value,
+    days:[...selDays],time:t,power:selPower,
     mode:document.getElementById('schedMode').value,
     temp:+document.getElementById('schedTemp').value,
     active:true
@@ -593,34 +915,29 @@ function saveSchedule(){
   saveScheds();renderSchedules();closeModal();
 }
 
-// Schedule executor (runs every 30s)
+// Schedule runner — 30s interval (tarayıcı açıkken)
 function runSchedules(){
   const now=new Date();
   const day=now.getDay();
   const hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  const key=day+'_'+hhmm;
-  if(lastFired[key])return;
-  schedules.forEach(s=>{
-    if(!s.active)return;
-    if(!s.days.includes(day))return;
-    if(s.time!==hhmm)return;
+  schedules.forEach((s,i)=>{
+    if(!s.active||!s.days.includes(day)||s.time!==hhmm)return;
+    const key=day+'_'+hhmm+'_'+i;
+    if(lastFired[key])return;
     lastFired[key]=true;
-    // Execute
     if(s.power==='off'){send({power:false});}
-    else{
-      const mNum=MNUM[s.mode]||3;
-      send({power:true,mode:mNum,setTemp:s.temp});
-    }
-    console.log('Schedule executed:',s);
+    else{send({power:true,mode:MNUM[s.mode]||3,setTemp:s.temp});}
+    console.log('Schedule fired:',s);
   });
-  // Clear old keys
-  const keys=Object.keys(lastFired);
-  if(keys.length>100)keys.slice(0,50).forEach(k=>delete lastFired[k]);
+  const ks=Object.keys(lastFired);
+  if(ks.length>200)ks.slice(0,100).forEach(k=>delete lastFired[k]);
 }
 setInterval(runSchedules,30000);
 
+// ── Init ──
 renderAll();
 renderSchedules();
+updateArc();
 </script>
 </body>
 </html>
