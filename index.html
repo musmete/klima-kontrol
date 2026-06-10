@@ -551,11 +551,10 @@ body{
       <div class="dc-val" id="dcHumidity">--<span class="dcu">%</span></div>
       <div class="dc-sub" id="dcHumSub">I2C GPIO21/22</div>
     </div>
-    <div class="data-card future">
+    <div class="data-card" id="dcFreqCard">
       <div class="dc-label">Komp. Frekansı</div>
-      <div class="dc-val">--<span class="dcu"> Hz</span></div>
-      <div class="dc-sub">Kompresör hızı</div>
-      <span class="dc-badge soon">Firmware gerekli</span>
+      <div class="dc-val" id="dcFreq">--<span class="dcu"> Hz</span></div>
+      <div class="dc-sub" id="dcFreqSub">Kompresör hızı</div>
     </div>
     <div class="data-card future">
       <div class="dc-label">Emış Sıcaklığı</div>
@@ -715,7 +714,7 @@ let ac = {
   fan:'AUTO', vane:'AUTO', wideVane:'|',
   roomTemp:null, outTemp:null, humidity:null, sensorTemp:null,
   iSee:false, plasma:false, operating:false, cn105:false,
-  uptime:null, rssi:null
+  uptime:null, rssi:null, compFreq:null
 };
 
 function calcFeelsLike(T, RH) {
@@ -777,6 +776,7 @@ client.on('message',(t,p)=>{
     if(d.humidity  !=null) ac.humidity  =+d.humidity;
     if(d.sensorTemp!=null) ac.sensorTemp=+d.sensorTemp;
     if(d.operating !=null) ac.operating =d.operating;
+    if(d.compFreq  !=null) ac.compFreq  =+d.compFreq;
     if(d.cn105     !=null) ac.cn105     =d.cn105;
     if(d.uptime    !=null) ac.uptime    =+d.uptime;
     if(d.rssi      !=null) ac.rssi      =+d.rssi;
@@ -921,7 +921,18 @@ function renderOutdoor(){
   const h=ac.humidity;
   document.getElementById('dcHumidity').innerHTML=(h!=null&&h>=0)?h.toFixed(1)+'<span class="dcu">%</span>':'--<span class="dcu">%</span>';
   document.getElementById('dcHumSub').textContent=
-    (h!=null&&h>=0&&ac.sensorTemp!=null)?'SHT31 · '+ac.sensorTemp.toFixed(1)+'°C':'SHT31 I2C (GPIO21/22)';
+    (h!=null&&h>=0&&ac.sensorTemp!=null)?'DHT11 · '+ac.sensorTemp.toFixed(1)+'°C':'DHT11 GPIO14';
+  const cf=ac.compFreq;
+  const freqEl=document.getElementById('dcFreq');
+  const freqSub=document.getElementById('dcFreqSub');
+  if(cf!=null){
+    freqEl.innerHTML=cf+'<span class="dcu"> Hz</span>';
+    freqSub.textContent=cf===0?'Kompresör durdu':'Çalışıyor · CN105';
+    document.getElementById('dcFreqCard').style.opacity='1';
+  } else {
+    freqEl.innerHTML='--<span class="dcu"> Hz</span>';
+    freqSub.textContent='Kompresör hızı';
+  }
 }
 function renderSystem(){
   if(ac.uptime!=null){
