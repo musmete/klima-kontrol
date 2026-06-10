@@ -123,7 +123,7 @@ body{
 .mode-chip.auto{background:#ede7f6;color:var(--auto)}
 
 /* ── Sub-info row (outdoor + humidity) ── */
-.sub-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.sub-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
 .sub-box{
   background:#f8fafc;border-radius:12px;padding:9px 10px;
   border:1px solid var(--border);display:flex;align-items:center;gap:8px;
@@ -404,6 +404,15 @@ body{
       <div class="sub-text">
         <div class="sub-val" id="humVal" style="color:#1565c0">--%</div>
         <div class="sub-lbl">Nem</div>
+      </div>
+    </div>
+    <div class="sub-box" style="border-color:#fde68a">
+      <div class="sub-icon">
+        <svg viewBox="0 0 24 24" width="16" height="18" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round"><path d="M12 2v10m0 0a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/><path d="M12 12V2"/><line x1="9" y1="4" x2="7" y2="4"/><line x1="9" y1="7" x2="7" y2="7"/><line x1="9" y1="10" x2="7" y2="10"/></svg>
+      </div>
+      <div class="sub-text">
+        <div class="sub-val" id="feelsVal" style="color:#d97706">--°</div>
+        <div class="sub-lbl">Hissedilen</div>
       </div>
     </div>
   </div>
@@ -709,6 +718,12 @@ let ac = {
   uptime:null, rssi:null
 };
 
+function calcFeelsLike(T, RH) {
+  if (T == null || RH == null || isNaN(T) || isNaN(RH)) return null;
+  const e = (RH / 100) * 6.105 * Math.exp(17.27 * T / (237.7 + T));
+  return T + 0.33 * e - 4.00;
+}
+
 let logs = [];
 
 // Arc constants
@@ -844,6 +859,8 @@ function renderTemp(){
   document.getElementById('outVal').textContent=fmtT(ac.outTemp,-50);
   const h=ac.humidity;
   document.getElementById('humVal').textContent=(h!=null&&h>=0)?h.toFixed(0)+'%':'--%';
+  const fl=calcFeelsLike(ac.sensorTemp, ac.humidity);
+  document.getElementById('feelsVal').textContent=(fl!=null)?fl.toFixed(1)+'°':'--°';
   updateArc();
 }
 function renderMode(){
