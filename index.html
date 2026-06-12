@@ -189,7 +189,10 @@ body{
 .fn-card.fn-clean.fn-on .fn-badge  {background:#e0f2f1;color:#00695c}
 
 /* Info grid */
-.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.ibox.err-ok  .iv{color:var(--on)}
+.ibox.err-bad .iv{color:#c62828}
+.ibox.err-bad   {border-color:#f87171;background:#fff5f5}
 .ibox{background:#f8fafc;border-radius:12px;padding:10px 6px;text-align:center;border:1px solid var(--border)}
 .ibox .iv{font-size:12px;font-weight:700;color:var(--text)}
 .ibox .il{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;font-weight:600}
@@ -513,8 +516,9 @@ body{
   <div class="sec-title">Cihaz Durumu</div>
   <div class="info-grid">
     <div class="ibox"><div class="iv" id="ivComp">—</div><div class="il">Kompresör</div></div>
-    <div class="ibox"><div class="iv" id="ivIsee">—</div><div class="il">i-see</div></div>
-    <div class="ibox"><div class="iv" id="ivCn">—</div><div class="il">CN105</div></div>
+    <div class="ibox"><div class="iv" id="ivIsee">—</div><div class="il">i-see Sensör</div></div>
+    <div class="ibox"><div class="iv" id="ivCn">—</div><div class="il">CN105 Bağlantı</div></div>
+    <div class="ibox" id="ivErrBox"><div class="iv" id="ivErr">—</div><div class="il">Hata Kodu</div></div>
   </div>
 </div>
 
@@ -714,7 +718,7 @@ let ac = {
   fan:'AUTO', vane:'AUTO', wideVane:'|',
   roomTemp:null, outTemp:null, humidity:null, sensorTemp:null,
   iSee:false, plasma:false, operating:false, cn105:false,
-  uptime:null, rssi:null, compFreq:null
+  uptime:null, rssi:null, compFreq:null, errCode:0
 };
 
 function calcFeelsLike(T, RH) {
@@ -777,6 +781,7 @@ client.on('message',(t,p)=>{
     if(d.sensorTemp!=null) ac.sensorTemp=+d.sensorTemp;
     if(d.operating !=null) ac.operating =d.operating;
     if(d.compFreq  !=null) ac.compFreq  =+d.compFreq;
+    if(d.errCode   !=null) ac.errCode   =+d.errCode;
     if(d.cn105     !=null) ac.cn105     =d.cn105;
     if(d.uptime    !=null) ac.uptime    =+d.uptime;
     if(d.rssi      !=null) ac.rssi      =+d.rssi;
@@ -898,12 +903,20 @@ function renderInfo(){
   const c=document.getElementById('ivComp');
   c.textContent=ac.operating?'Çalışıyor':'Beklemede';
   c.style.color=ac.operating?'var(--heat)':'var(--sub)';
+
   const i=document.getElementById('ivIsee');
   i.textContent=ac.iSee?'Aktif':'Pasif';
   i.style.color=ac.iSee?'var(--on)':'var(--sub)';
+
   const n=document.getElementById('ivCn');
   n.textContent=ac.cn105?'Bağlı':'Yok';
   n.style.color=ac.cn105?'var(--on)':'#c62828';
+
+  const eb=document.getElementById('ivErrBox');
+  const ev=document.getElementById('ivErr');
+  const hasErr=ac.errCode!=null && ac.errCode!==0;
+  ev.textContent=hasErr?('E'+ac.errCode.toString(16).toUpperCase().padStart(2,'0')):'Normal';
+  eb.className='ibox '+(hasErr?'err-bad':'err-ok');
 }
 function renderOutdoor(){
   const fmtT=(v,min=-90)=>(v!=null&&v>min)?v.toFixed(1):'--';
