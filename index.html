@@ -856,46 +856,74 @@ let ac = {
 };
 
 // ── CN606 M-NET State ──
-// Temp formula: (raw - 67) / 2  → 0.5°C resolution
-// Calibrated: d[9]=0x75=25°C (indoor return air)
+// Frame format: 60-byte burst [55] [95 85 cmd DATA×13]×3 [tail]
+// Temp formula: (raw - 67) / 2 → 0.5°C resolution
+// Calibrated: frame[24]=0x75=25°C (indoor temp confirmed)
+// Filler bytes (skip): D5, F5, 55, 00, FF
 const CN606_OFFSET = 67;
+// Sensor byte offsets relative to start of first 95 85 pattern in burst:
+const CN606_MAP = {
+  liquid:    3,   // 0xA5=49°C  sıvı hat
+  hotGas:    6,   // 0xD4=72.5°C sıcak gaz
+  condenser: 8,   // 0x95=41°C  dış serpantin
+  head:      10,  // 0xB7=58°C  komp kafası alanı
+  discharge: 19,  // 0xB5=57°C  deşarj bölgesi
+  suction:   21,  // 0x65=17°C  emış hattı ✓
+  dischargeH:22,  // 0xF4=88.5°C deşarj yüksek
+  room:      23,  // 0x75=25°C  oda/iç ünite ✓
+  liquid2:   35,  // 0xAA=51.5°C sıvı/kondenser 2
+  condenser2:36,  // 0x95=41°C  kondenser 2
+  hotGas2:   38,  // 0xD1=71°C  sıcak gaz 2
+  ipm:       45,  // 0xC5=65°C  IPM modül ✓
+};
+
 let cn606 = {
   connected: false,
   lastFrame: null,
-  data: null,
+  rawBurst: null,
   sensors: {
-    room:      null,  // d[9]  return air / indoor
-    suction:   null,  // d[29] emış hattı
-    discharge: null,  // d[3]  deşarj borusu
-    hotGas:    null,  // d[28] sıcak gaz
-    head:      null,  // d[55] komp kafası
-    condenser: null,  // d[19] dış serpantin
-    liquid:    null,  // d[21] sıvı hat
-    ipm:       null,  // d[63] İPM
-    outdoor:   null,  // d[70-83] dış ortam
-    fanStep:   null,  // d[2] dış ünite fan kademesi (0-5)
+    room:       null,
+    suction:    null,
+    discharge:  null,
+    dischargeH: null,
+    hotGas:     null,
+    head:       null,
+    condenser:  null,
+    liquid:     null,
+    ipm:        null,
+    outdoor:    null,
+    fanStep:    null,
   }
 };
-let cn606Buf = [];  // running byte buffer for frame search
+let cn606Buf = [];
 
 // ── CN606 Frame Parser ──
+const CN606_FILLER = new Set([0xD5, 0xF5, 0x55, 0x00, 0xFF]);
+
 function cn606DecodeTemp(raw) {
-  if (raw === 0xD5 || raw === 0xF5 || raw === 0x55 || raw === 0x00 || raw === 0xFF) return null;
+  if (CN606_FILLER.has(raw)) return null;
   const t = (raw - CN606_OFFSET) / 2;
-  if (t < -30 || t > 110) return null;
+  if (t < -25 || t > 110) return null;
   return t;
 }
 
 function cn606FindFrame(buf) {
-  // Search for BD 81 00 A2 [len] [data x len] [chk]
+  // Search for 95 85 xx pattern (M-NET residential outdoor burst)
+  for (let i = 0; i < buf.length - 50; i++) {
+    if (buf[i] === 0x95 && buf[i+1] === 0x85) {
+      // Need at least 50 bytes of data from here
+      if (i + 50 > buf.length) continue;
+      return { pos: i, data: buf.slice(i, i + 60) };
+    }
+  }
+  // Fallback: search for BD 81 00 A2 (legacy format)
   for (let i = 0; i < buf.length - 5; i++) {
     if (buf[i]===0xBD && buf[i+1]===0x81 && buf[i+2]===0x00 && buf[i+3]===0xA2) {
       const len = buf[i+4];
-      if (len < 20 || len > 120) continue;  // sanity
+      if (len < 20 || len > 120) continue;
       const end = i + 5 + len + 1;
       if (end > buf.length) continue;
-      const frame = buf.slice(i, end);
-      return { pos: i, frame, data: frame.slice(5, 5+len), chk: frame[5+len] };
+      return { pos: i, data: buf.slice(i+5, i+5+len), isBD: true };
     }
   }
   return null;
@@ -904,51 +932,69 @@ function cn606FindFrame(buf) {
 // Fan step labels for M-NET outdoor unit
 const CN606_FAN_LABELS = ['Kapalı','Düşük','Orta-D','Orta','Yüksek','Maks'];
 
-function cn606ParseFrame(data) {
+function cn606ParseFrame(data, isBD) {
   const t = (pos) => pos < data.length ? cn606DecodeTemp(data[pos]) : null;
-  cn606.sensors.room      = t(9);
-  cn606.sensors.suction   = t(29);
-  cn606.sensors.discharge = t(3);
-  cn606.sensors.hotGas    = t(28);
-  cn606.sensors.head      = t(55);
-  cn606.sensors.condenser = t(19);
-  cn606.sensors.liquid    = t(21);
-  cn606.sensors.ipm       = t(63);
-  // Outdoor ambient: scan d[70-83] for plausible ambient temp
-  for (const pos of [70,71,72,73,74,75,76,77,78,79,80,81,82,83]) {
-    const v = t(pos);
-    if (v !== null && v >= 5 && v <= 45) { cn606.sensors.outdoor = v; break; }
+
+  if (isBD) {
+    // Legacy BD 81 00 A2 format (old byte positions)
+    cn606.sensors.room      = t(9);
+    cn606.sensors.suction   = t(29);
+    cn606.sensors.discharge = t(3);
+    cn606.sensors.hotGas    = t(28);
+    cn606.sensors.head      = t(55);
+    cn606.sensors.condenser = t(19);
+    cn606.sensors.liquid    = t(21);
+    cn606.sensors.ipm       = t(63);
+    for (const pos of [70,71,72,73,74,75,76,77,78,79,80,81,82,83]) {
+      const v = t(pos); if (v !== null && v >= 5 && v <= 45) { cn606.sensors.outdoor = v; break; }
+    }
+  } else {
+    // 95 85 XX format — confirmed byte map (calibrated 2026-06)
+    for (const [sensor, offset] of Object.entries(CN606_MAP)) {
+      cn606.sensors[sensor] = t(offset);
+    }
+    // Best outdoor ambient candidate: scan for plausible 10-40°C range
+    for (const pos of [5,6,8,32,36,44]) {
+      const v = t(pos);
+      if (v !== null && v >= 10 && v <= 40) { cn606.sensors.outdoor = v; break; }
+    }
+    // Fan step: byte at offset 0xF5 (msg3 cmd position = 35-2=33+2=35) — scan for 0-5
+    // Actually try to find fan step from non-temp small value
+    cn606.sensors.fanStep = null;
+    for (const pos of [3, 16, 32]) {
+      const b = data[pos];
+      if (b !== undefined && b >= 0 && b <= 5 && !CN606_FILLER.has(b)) {
+        cn606.sensors.fanStep = b; break;
+      }
+    }
   }
-  // Outdoor fan step: d[2] — small value 0-5, not a temp
-  if (data.length > 2) {
-    const fs = data[2];
-    cn606.sensors.fanStep = (fs >= 0 && fs <= 5) ? fs : null;
-  }
-  cn606.data = data;
+
+  cn606.rawBurst = data;
   cn606.lastFrame = new Date();
   cn606.connected = true;
 }
 
-function cn606HtmlDump(frame) {
-  // Colorize the frame hex dump
-  const FILLER = new Set([0xD5,0xF5,0x55]);
+function cn606HtmlDump(data) {
+  // Colorize burst hex dump (95 85 format or BD format)
+  const SENSOR_POS = new Set(Object.values(CN606_MAP));
   let parts = [];
-  for (let i = 0; i < frame.length; i++) {
-    const b = frame[i];
+  for (let i = 0; i < data.length; i++) {
+    const b = data[i];
     const hex = b.toString(16).padStart(2,'0').toUpperCase();
-    if (i < 5) { parts.push(`<span class="bd-mark">${hex}</span>`); continue; }
-    const di = i - 5;  // data index
     const t = cn606DecodeTemp(b);
-    if (FILLER.has(b) || b === 0x00 || b === 0xFF) {
-      parts.push(`<span style="opacity:.35">${hex}</span>`);
-    } else if (t !== null && t <= 15) {
-      parts.push(`<span class="cold-mark" title="d[${di}]=${t.toFixed(1)}°C">${hex}</span>`);
+    if (CN606_FILLER.has(b)) {
+      parts.push(`<span style="opacity:.3">${hex}</span>`);
+    } else if ((b===0x95&&i<40) || (b===0x85&&i<40)) {
+      parts.push(`<span class="bd-mark">${hex}</span>`);
+    } else if (SENSOR_POS.has(i) && t !== null) {
+      const cls = t >= 60 ? 'hot-mark' : (t <= 20 ? 'cold-mark' : 'room-mark');
+      parts.push(`<span class="${cls}" title="[${i}]=${t.toFixed(1)}°C">${hex}</span>`);
     } else if (t !== null && t >= 60) {
-      parts.push(`<span class="hot-mark" title="d[${di}]=${t.toFixed(1)}°C">${hex}</span>`);
-    } else if (di === 9 || di === 51) {
-      parts.push(`<span class="room-mark" title="d[${di}]=${t?t.toFixed(1):'?'}°C">${hex}</span>`);
+      parts.push(`<span class="hot-mark" title="[${i}]=${t.toFixed(1)}°C">${hex}</span>`);
+    } else if (t !== null && t <= 20) {
+      parts.push(`<span class="cold-mark" title="[${i}]=${t.toFixed(1)}°C">${hex}</span>`);
     } else {
-      parts.push(`<span style="opacity:.8">${hex}</span>`);
+      parts.push(`<span style="opacity:.7">${hex}</span>`);
     }
   }
   return parts.join(' ');
@@ -961,15 +1007,24 @@ function cn606OnFrame(hexBytes) {
     if (cn606Buf.length > 512) cn606Buf = cn606Buf.slice(-256);
     const found = cn606FindFrame(cn606Buf);
     if (found) {
-      cn606ParseFrame(found.data);
-      // Update raw display
+      cn606ParseFrame(found.data, found.isBD);
       const rawEl = document.getElementById('cn606RawFrame');
-      if (rawEl) rawEl.innerHTML = cn606HtmlDump(found.frame);
+      if (rawEl) rawEl.innerHTML = cn606HtmlDump(found.data);
       renderCN606();
-      // Remove consumed bytes
-      cn606Buf = cn606Buf.slice(found.pos + found.frame.length);
+      cn606Buf = cn606Buf.slice(found.pos + found.data.length);
     }
   } catch(e){}
+}
+
+// Auto-refresh: UART restart every 90s to get fresh burst
+let cn606AutoTimer = null;
+function cn606StartAutoRefresh() {
+  if (cn606AutoTimer) return;
+  cn606AutoTimer = setInterval(() => {
+    if (!cn606UartOn) return;
+    cn606StartSent = false;
+    cn606SendUart();
+  }, 90000);
 }
 
 // ── CN606 MQTT Client ──
@@ -1024,9 +1079,11 @@ cn606Client.on('message', (topic, payload) => {
   if (topic === T_OUT_STA) {
     try {
       const d = JSON.parse(str);
+      const wasOff = !cn606UartOn;
       cn606UartOn = d.uart === true;
       if (cn606UartOn) {
-        document.getElementById('cn606ConnTxt').textContent = 'UART dinliyor...';
+        document.getElementById('cn606ConnTxt').textContent = 'UART aktif · 90s oto';
+        if (wasOff) cn606StartAutoRefresh();
       }
     } catch(e){}
     return;
@@ -1309,9 +1366,10 @@ function renderCN606(){
 
   set('scRoom',      s.room);
   set('scSuction',   s.suction);
-  set('scDischarge', s.discharge);
+  // Prefer high discharge (88.5°C sensor) over lower zone
+  set('scDischarge', s.dischargeH !== null ? s.dischargeH : s.discharge);
   set('scHotGas',    s.hotGas);
-  set('scHead',      s.head);
+  set('scHead',      s.head !== null ? s.head : s.discharge);
   set('scCondenser', s.condenser);
   set('scLiquid',    s.liquid);
   set('scIPM',       s.ipm);
