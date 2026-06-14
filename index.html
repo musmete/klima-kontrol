@@ -908,23 +908,31 @@ function cn606DecodeTemp(raw) {
 }
 
 function cn606FindFrame(buf) {
-  // Search for 95 85 xx pattern (M-NET residential outdoor burst)
-  for (let i = 0; i < buf.length - 50; i++) {
+  // Type A: 95 85 XX (60-byte burst, calibrated positions)
+  for (let i = 0; i < buf.length - 40; i++) {
     if (buf[i] === 0x95 && buf[i+1] === 0x85) {
-      // Need at least 50 bytes of data from here
-      if (i + 50 > buf.length) continue;
-      return { pos: i, data: buf.slice(i, i + 60) };
+      return { pos: i, data: buf.slice(i, i + 60), ftype: 'A' };
     }
   }
-  // Fallback: search for BD 81 00 A2 (legacy format)
+  // Type B: 95 95 FD (69-byte burst, different positions)
+  for (let i = 0; i < buf.length - 40; i++) {
+    if (buf[i] === 0x95 && buf[i+1] === 0x95 && buf[i+2] === 0xFD) {
+      return { pos: i, data: buf.slice(i, i + 69), ftype: 'B' };
+    }
+  }
+  // Type BD: BD 81 00 A2 (legacy VRF format)
   for (let i = 0; i < buf.length - 5; i++) {
     if (buf[i]===0xBD && buf[i+1]===0x81 && buf[i+2]===0x00 && buf[i+3]===0xA2) {
       const len = buf[i+4];
       if (len < 20 || len > 120) continue;
       const end = i + 5 + len + 1;
       if (end > buf.length) continue;
-      return { pos: i, data: buf.slice(i+5, i+5+len), isBD: true };
+      return { pos: i, data: buf.slice(i+5, i+5+len), ftype: 'BD' };
     }
+  }
+  // Type X: any burst ≥ 40 bytes — scan for 0x75 (25°C indoor anchor)
+  if (buf.length >= 40) {
+    return { pos: 0, data: buf.slice(0), ftype: 'X' };
   }
   return null;
 }
@@ -932,11 +940,11 @@ function cn606FindFrame(buf) {
 // Fan step labels for M-NET outdoor unit
 const CN606_FAN_LABELS = ['Kapalı','Düşük','Orta-D','Orta','Yüksek','Maks'];
 
-function cn606ParseFrame(data, isBD) {
+function cn606ParseFrame(data, ftype) {
   const t = (pos) => pos < data.length ? cn606DecodeTemp(data[pos]) : null;
 
-  if (isBD) {
-    // Legacy BD 81 00 A2 format (old byte positions)
+  if (ftype === 'BD') {
+    // Legacy BD 81 00 A2 format
     cn606.sensors.room      = t(9);
     cn606.sensors.suction   = t(29);
     cn606.sensors.discharge = t(3);
@@ -948,23 +956,41 @@ function cn606ParseFrame(data, isBD) {
     for (const pos of [70,71,72,73,74,75,76,77,78,79,80,81,82,83]) {
       const v = t(pos); if (v !== null && v >= 5 && v <= 45) { cn606.sensors.outdoor = v; break; }
     }
+
+  } else if (ftype === 'A') {
+    // 95 85 XX burst — calibrated 2026-06 from capture
+    // Positions relative to start of 0x95 byte
+    cn606.sensors.room      = t(23);  // 0x75=25°C confirmed
+    cn606.sensors.suction   = t(21);  // 0x65=17°C confirmed
+    cn606.sensors.dischargeH= t(22);  // 0xF4=88.5°C
+    cn606.sensors.liquid    = t(3);   // 0xA5=49°C
+    cn606.sensors.hotGas    = t(6);   // 0xD4=72.5°C
+    cn606.sensors.condenser = t(8);   // 0x95=41°C
+    cn606.sensors.head      = t(10);  // 0xB7=58°C
+    cn606.sensors.ipm       = t(45);  // 0xC5=65°C
+    cn606.sensors.discharge = t(19);  // 0xB5=57°C
+
+  } else if (ftype === 'B') {
+    // 95 95 FD XX burst — calibrated 2026-06 from capture
+    cn606.sensors.room      = t(12);  // 0x75=25°C confirmed
+    cn606.sensors.suction   = t(26);  // 0x65=17°C confirmed
+    cn606.sensors.outdoor   = t(47);  // 0x74=24.5°C confirmed (user said ~24.2°C)
+    cn606.sensors.dischargeH= t(2);   // 0xFD=93°C
+    cn606.sensors.hotGas    = t(21);  // 0xDD=77°C
+    cn606.sensors.condenser = t(0);   // 0x95=41°C
+    cn606.sensors.liquid    = t(3);   // 0xAB=52°C
+    cn606.sensors.ipm       = t(63);  // 0xD4=72.5°C (tentative)
+
   } else {
-    // 95 85 XX format — confirmed byte map (calibrated 2026-06)
-    for (const [sensor, offset] of Object.entries(CN606_MAP)) {
-      cn606.sensors[sensor] = t(offset);
-    }
-    // Best outdoor ambient candidate: scan for plausible 10-40°C range
-    for (const pos of [5,6,8,32,36,44]) {
-      const v = t(pos);
-      if (v !== null && v >= 10 && v <= 40) { cn606.sensors.outdoor = v; break; }
-    }
-    // Fan step: byte at offset 0xF5 (msg3 cmd position = 35-2=33+2=35) — scan for 0-5
-    // Actually try to find fan step from non-temp small value
-    cn606.sensors.fanStep = null;
-    for (const pos of [3, 16, 32]) {
-      const b = data[pos];
-      if (b !== undefined && b >= 0 && b <= 5 && !CN606_FILLER.has(b)) {
-        cn606.sensors.fanStep = b; break;
+    // Type X: unknown format — scan for room temp anchor (0x75=25°C)
+    // Find first 0x75 occurrence and use relative offsets from type A
+    for (let i = 0; i < data.length - 5; i++) {
+      if (data[i] === 0x75) {
+        // Type A relative: room=+0, suction=-2, dischargeH=-1, liquid=-20, hotGas=-17
+        cn606.sensors.room      = t(i);
+        const s = t(i-2); if (s !== null && s > 0 && s < 30) cn606.sensors.suction = s;
+        const d = t(i-1); if (d !== null && d > 50) cn606.sensors.dischargeH = d;
+        break;
       }
     }
   }
@@ -1000,20 +1026,27 @@ function cn606HtmlDump(data) {
   return parts.join(' ');
 }
 
+let cn606FrameCount = 0;
 function cn606OnFrame(hexBytes) {
-  try {
-    const bytes = hexBytes.trim().split(/\s+/).map(x=>parseInt(x,16));
-    cn606Buf.push(...bytes);
-    if (cn606Buf.length > 512) cn606Buf = cn606Buf.slice(-256);
-    const found = cn606FindFrame(cn606Buf);
-    if (found) {
-      cn606ParseFrame(found.data, found.isBD);
-      const rawEl = document.getElementById('cn606RawFrame');
-      if (rawEl) rawEl.innerHTML = cn606HtmlDump(found.data);
-      renderCN606();
-      cn606Buf = cn606Buf.slice(found.pos + found.data.length);
+  const bytes = hexBytes.trim().split(/\s+/).map(x=>parseInt(x,16)).filter(x=>!isNaN(x));
+  if (!bytes.length) return;
+  cn606Buf.push(...bytes);
+  if (cn606Buf.length > 512) cn606Buf = cn606Buf.slice(-256);
+  cn606FrameCount++;
+  // Always show raw bytes received
+  const rawEl = document.getElementById('cn606RawFrame');
+  if (rawEl) rawEl.innerHTML = `<span style="opacity:.5">[${cn606FrameCount}] ${bytes.length}B</span> ` + cn606HtmlDump(bytes);
+  const found = cn606FindFrame(cn606Buf);
+  if (found) {
+    try {
+      cn606ParseFrame(found.data, found.ftype);
+    } catch(e) {
+      if (rawEl) rawEl.innerHTML += `<br><span style="color:red">parse err: ${e.message}</span>`;
     }
-  } catch(e){}
+    if (rawEl) rawEl.innerHTML = `<span style="opacity:.5">[${cn606FrameCount}] ${bytes.length}B type=${found.ftype}</span> ` + cn606HtmlDump(found.data);
+    renderCN606();
+    cn606Buf = cn606Buf.slice(found.pos + found.data.length);
+  }
 }
 
 // Auto-refresh: UART restart every 90s to get fresh burst
