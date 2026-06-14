@@ -576,9 +576,12 @@ body{
         <div class="ou-title">Dış Ünite · MUZ-FA35VA</div>
         <div class="ou-sub">M-NET CN606 · BD 81 00 A2</div>
       </div>
-      <div class="cn606-conn">
-        <div class="cn606-dot" id="cn606Dot"></div>
-        <span id="cn606ConnTxt">Bağlanıyor</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button onclick="cn606StartSent=false;cn606SendUart()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:10px;font-weight:700;color:var(--sub);cursor:pointer">↺</button>
+        <div class="cn606-conn">
+          <div class="cn606-dot" id="cn606Dot"></div>
+          <span id="cn606ConnTxt">Bağlanıyor</span>
+        </div>
       </div>
     </div>
   </div>
@@ -941,26 +944,64 @@ function cn606OnFrame(hexBytes) {
 }
 
 // ── CN606 MQTT Client ──
+const T_OUT_CMD = 'mits-out/' + MAC_OUT + '/cmd';
+const T_OUT_STA = 'mits-out/' + MAC_OUT + '/status';
+
+let cn606UartOn = false;
+let cn606StartSent = false;
+
+function cn606SendUart() {
+  const cmds = [
+    {uart: false},
+    {rx: 16}, {tx: 17},
+    {baud: 9600}, {parity: 1},
+    {invert: true}, {gap: 5},
+    {passive: true},
+    {uart: true}
+  ];
+  let delay = 0;
+  cmds.forEach(cmd => {
+    setTimeout(() => cn606Client.publish(T_OUT_CMD, JSON.stringify(cmd)), delay);
+    delay += 350;
+  });
+  cn606StartSent = true;
+  document.getElementById('cn606ConnTxt').textContent = 'UART başlatılıyor...';
+}
+
 const cn606Client = mqtt.connect(BROKER, {
   clientId: 'cn606_' + Math.random().toString(36).slice(2,8),
   clean: true, reconnectPeriod: 5000, connectTimeout: 10000
 });
 cn606Client.on('connect', () => {
   cn606Client.subscribe(T_OUT_LOG);
+  cn606Client.subscribe(T_OUT_STA);
   document.getElementById('cn606Dot').className = 'cn606-dot ok';
   document.getElementById('cn606ConnTxt').textContent = 'MQTT Bağlı';
+  // Auto-start after short delay
+  setTimeout(() => { if (!cn606StartSent) cn606SendUart(); }, 1500);
 });
 cn606Client.on('close', () => {
   document.getElementById('cn606Dot').className = 'cn606-dot err';
   document.getElementById('cn606ConnTxt').textContent = 'Bağlantı yok';
   cn606.connected = false;
+  cn606UartOn = false;
+  cn606StartSent = false;
 });
 cn606Client.on('reconnect', () => {
   document.getElementById('cn606Dot').className = 'cn606-dot';
   document.getElementById('cn606ConnTxt').textContent = 'Bağlanıyor';
+  cn606StartSent = false;
 });
 cn606Client.on('message', (topic, payload) => {
   const str = payload.toString();
+  if (topic === T_OUT_STA) {
+    try {
+      const d = JSON.parse(str);
+      cn606UartOn = d.uart === true;
+      if (!cn606UartOn && !cn606StartSent) cn606SendUart();
+    } catch(e){}
+    return;
+  }
   if (str.includes('FRAME[')) {
     try {
       const hexPart = str.split(']:')[1];
