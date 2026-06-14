@@ -976,9 +976,7 @@ cn606Client.on('connect', () => {
   cn606Client.subscribe(T_OUT_LOG);
   cn606Client.subscribe(T_OUT_STA);
   document.getElementById('cn606Dot').className = 'cn606-dot ok';
-  document.getElementById('cn606ConnTxt').textContent = 'MQTT Bağlı';
-  // Auto-start after short delay
-  setTimeout(() => { if (!cn606StartSent) cn606SendUart(); }, 1500);
+  document.getElementById('cn606ConnTxt').textContent = 'MQTT Bağlı · ↺ bas';
 });
 cn606Client.on('close', () => {
   document.getElementById('cn606Dot').className = 'cn606-dot err';
@@ -998,7 +996,9 @@ cn606Client.on('message', (topic, payload) => {
     try {
       const d = JSON.parse(str);
       cn606UartOn = d.uart === true;
-      if (!cn606UartOn && !cn606StartSent) cn606SendUart();
+      if (cn606UartOn) {
+        document.getElementById('cn606ConnTxt').textContent = 'UART dinliyor...';
+      }
     } catch(e){}
     return;
   }
