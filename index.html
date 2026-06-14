@@ -224,6 +224,46 @@ body{
 .ou-note{margin:12px 12px 12px;background:#fff;border-radius:14px;padding:12px 14px;border-left:3px solid var(--red);box-shadow:0 2px 8px rgba(0,0,0,.05)}
 .ou-note p{font-size:12px;color:var(--sub);line-height:1.55}
 
+/* ══ CN606 Section ══ */
+.cn606-conn{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.05);border-radius:20px;padding:4px 10px}
+.cn606-dot{width:6px;height:6px;border-radius:50%;background:#9ca3af;transition:.4s;flex-shrink:0}
+.cn606-dot.ok{background:#4ade80;box-shadow:0 0 7px #4ade8099}
+.cn606-dot.err{background:#f87171}
+.cn606-conn span{font-size:10px;font-weight:600;color:var(--sub);letter-spacing:.3px}
+.sensor-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 12px 4px}
+.sensor-card{background:#fff;border-radius:14px;padding:11px 10px 9px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid var(--border);border-top:3px solid var(--sc-color,#e5e7eb)}
+.sensor-card.unknown{opacity:.55;border-top-color:#e5e7eb}
+.sc-lbl{font-size:8.5px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.sc-val{font-size:22px;font-weight:300;color:var(--text);line-height:1;letter-spacing:-.3px}
+.sc-val sup{font-size:10px;font-weight:400;color:var(--sub);vertical-align:super}
+.sc-sub{font-size:9px;color:var(--sub);margin-top:2px}
+.sc-hot{color:#c62828}
+.sc-cold{color:#1565c0}
+.sc-warm{color:#e65100}
+.sc-ipm{color:#6a1b9a}
+
+/* power card */
+.power-card{background:linear-gradient(135deg,#1a237e 0%,#283593 100%);border-radius:16px;padding:14px 14px;margin:8px 12px 0;box-shadow:0 4px 16px rgba(26,35,126,.3)}
+.power-card .pc-lbl{font-size:9px;font-weight:700;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.power-row-inner{display:flex;align-items:flex-end;gap:16px}
+.power-card .pc-val{font-size:40px;font-weight:200;color:#fff;line-height:1;letter-spacing:-1px}
+.power-card .pc-unit{font-size:16px;font-weight:400;color:rgba(255,255,255,.5);margin-bottom:4px}
+.power-card .pc-sub{font-size:10px;color:rgba(255,255,255,.45);margin-top:4px}
+.power-bar-wrap{flex:1;background:rgba(255,255,255,.1);border-radius:4px;height:5px;margin-bottom:7px}
+.power-bar{height:5px;border-radius:4px;background:linear-gradient(90deg,#4ade80,#fbbf24,#f87171);transition:width .5s;max-width:100%}
+
+/* cn606 raw data */
+.cn606-frame{font-family:monospace;font-size:9.5px;color:var(--sub);line-height:2;word-break:break-all;padding:4px 0}
+.cn606-frame .bd-mark{color:#1565c0;font-weight:700}
+.cn606-frame .hot-mark{color:#c62828}
+.cn606-frame .cold-mark{color:#1565c0}
+.cn606-frame .room-mark{color:#2e7d32;font-weight:700}
+
+.ou-sec-title{font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.9px;padding:10px 14px 5px}
+
+/* cn606 status bar */
+.cn606-last{font-size:10px;color:var(--sub);text-align:center;padding:6px 0 2px}
+
 /* ══ Schedule Tab ══ */
 .sched-header{display:flex;align-items:center;justify-content:space-between;padding:16px 14px 6px}
 .sched-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--text)}
@@ -528,16 +568,101 @@ body{
 
 <!-- ══════════ TAB: DIŞ ÜNİTE ══════════ -->
 <div id="tabOutdoor" class="tab-content">
+
+  <!-- Header -->
   <div class="ou-header">
-    <div class="ou-title">Dış Ünite Verileri</div>
-    <div class="ou-sub">Anlık sistem bilgileri</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="ou-title">Dış Ünite · MUZ-FA35VA</div>
+        <div class="ou-sub">M-NET CN606 · BD 81 00 A2</div>
+      </div>
+      <div class="cn606-conn">
+        <div class="cn606-dot" id="cn606Dot"></div>
+        <span id="cn606ConnTxt">Bağlanıyor</span>
+      </div>
+    </div>
   </div>
+
+  <!-- Güç Tüketimi -->
+  <div class="power-card">
+    <div class="pc-lbl">Tahmini Güç Tüketimi</div>
+    <div class="power-row-inner">
+      <div>
+        <div style="display:flex;align-items:flex-end;gap:4px">
+          <div class="pc-val" id="pcVal">--</div>
+          <div class="pc-unit">W</div>
+        </div>
+        <div class="pc-sub" id="pcSub">Kompresör frekanstan hesap</div>
+      </div>
+      <div style="flex:1">
+        <div class="power-bar-wrap">
+          <div class="power-bar" id="powerBar" style="width:0%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-size:8px;color:rgba(255,255,255,.3)">0W</span>
+          <span style="font-size:8px;color:rgba(255,255,255,.3)">1575W</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CN606 Sıcaklık Sensörleri -->
+  <div class="ou-sec-title">Sıcaklık Sensörleri · CN606 M-NET</div>
+  <div class="sensor-grid">
+    <div class="sensor-card" style="--sc-color:#1565c0">
+      <div class="sc-lbl">Oda / İç Ünite</div>
+      <div class="sc-val sc-cold" id="scRoom">--<sup>°</sup></div>
+      <div class="sc-sub">Return air · d[9]</div>
+    </div>
+    <div class="sensor-card" style="--sc-color:#0288d1">
+      <div class="sc-lbl">Emış Hattı</div>
+      <div class="sc-val sc-cold" id="scSuction">--<sup>°</sup></div>
+      <div class="sc-sub">Soğutucu giriş · d[29]</div>
+    </div>
+    <div class="sensor-card" style="--sc-color:#4caf50">
+      <div class="sc-lbl">Dış Ortam</div>
+      <div class="sc-val" id="scOutdoor">--<sup>°</sup></div>
+      <div class="sc-sub" id="scOutdoorSub">CN606 · belirleniyor</div>
+    </div>
+    <div class="sensor-card" style="--sc-color:#d84315">
+      <div class="sc-lbl">Deşarj Borusu</div>
+      <div class="sc-val sc-hot" id="scDischarge">--<sup>°</sup></div>
+      <div class="sc-sub">Komp. çıkış · d[3]</div>
+    </div>
+    <div class="sensor-card" style="--sc-color:#bf360c">
+      <div class="sc-lbl">Sıcak Gaz</div>
+      <div class="sc-val sc-hot" id="scHotGas">--<sup>°</sup></div>
+      <div class="sc-sub">Yüksek basınç · d[28]</div>
+    </div>
+    <div class="sensor-card" style="--sc-color:#b71c1c">
+      <div class="sc-lbl">Komp. Kafası</div>
+      <div class="sc-val sc-hot" id="scHead">--<sup>°</sup></div>
+      <div class="sc-sub">Maks deşarj · d[55]</div>
+    </div>
+    <div class="sensor-card" style="--sc-color:#e65100">
+      <div class="sc-lbl">Dış Serpantin</div>
+      <div class="sc-val sc-warm" id="scCondenser">--<sup>°</sup></div>
+      <div class="sc-sub">Kondenser bobini · d[19]</div>
+    </div>
+    <div class="sensor-card" style="--sc-color:#f57c00">
+      <div class="sc-lbl">Sıvı Hat</div>
+      <div class="sc-val sc-warm" id="scLiquid">--<sup>°</sup></div>
+      <div class="sc-sub">Yoğuşma sonrası · d[21]</div>
+    </div>
+    <div class="sensor-card" style="--sc-color:#6a1b9a">
+      <div class="sc-lbl">İPM Sıcaklığı</div>
+      <div class="sc-val sc-ipm" id="scIPM">--<sup>°</sup></div>
+      <div class="sc-sub">İnvertör modül · d[63]</div>
+    </div>
+  </div>
+
+  <!-- Kompresör Durumu → CN105 -->
+  <div class="ou-sec-title">Kompresör · CN105</div>
   <div class="data-grid">
     <div class="data-card">
-      <div class="dc-label">Dış Ortam</div>
-      <div class="dc-val" id="dcOutTemp">--<sup>°</sup></div>
-      <div class="dc-sub">Dış hava sıcaklığı</div>
-      <span class="dc-badge soon" id="dcOutBadge">CN105 yakında</span>
+      <div class="dc-label">Frekans</div>
+      <div class="dc-val" id="dcFreq">--<span class="dcu"> Hz</span></div>
+      <div class="dc-sub" id="dcFreqSub">Kompresör hızı</div>
     </div>
     <div class="data-card">
       <div class="dc-label">Kompresör</div>
@@ -551,37 +676,19 @@ body{
       <div class="dc-sub">CN105 oda sensörü</div>
     </div>
     <div class="data-card">
-      <div class="dc-label">Nem · SHT31</div>
+      <div class="dc-label">Nem · DHT11</div>
       <div class="dc-val" id="dcHumidity">--<span class="dcu">%</span></div>
-      <div class="dc-sub" id="dcHumSub">I2C GPIO21/22</div>
-    </div>
-    <div class="data-card" id="dcFreqCard">
-      <div class="dc-label">Komp. Frekansı</div>
-      <div class="dc-val" id="dcFreq">--<span class="dcu"> Hz</span></div>
-      <div class="dc-sub" id="dcFreqSub">Kompresör hızı</div>
-    </div>
-    <div class="data-card future">
-      <div class="dc-label">Emış Sıcaklığı</div>
-      <div class="dc-val">--<sup>°</sup></div>
-      <div class="dc-sub">Soğutucu giriş</div>
-      <span class="dc-badge soon">Firmware gerekli</span>
-    </div>
-    <div class="data-card future">
-      <div class="dc-label">Çıkış Sıcaklığı</div>
-      <div class="dc-val">--<sup>°</sup></div>
-      <div class="dc-sub">Soğutucu çıkış</div>
-      <span class="dc-badge soon">Firmware gerekli</span>
-    </div>
-    <div class="data-card future">
-      <div class="dc-label">V / A</div>
-      <div class="dc-val" style="font-size:18px">-- / --</div>
-      <div class="dc-sub">Gerilim / Akım</div>
-      <span class="dc-badge soon">Firmware gerekli</span>
+      <div class="dc-sub" id="dcHumSub">GPIO14</div>
     </div>
   </div>
-  <div class="ou-note">
-    <p>Kompresör frekansı, emış/çıkış sıcaklıkları ve V/A değerleri için CN105 extended packet desteği gerekiyor. SHT31 bağlandıktan sonra nem verisi burada ve ana ekranda görünecek.</p>
+
+  <!-- CN606 Ham Frame -->
+  <div class="sec" style="margin:10px 12px 0">
+    <div class="sec-title" style="margin-bottom:5px">Son CN606 Frame</div>
+    <div class="cn606-frame" id="cn606RawFrame">M-NET bus bekleniyor...</div>
+    <div class="cn606-last" id="cn606LastTime"></div>
   </div>
+
 </div><!-- end tabOutdoor -->
 
 
@@ -706,12 +813,14 @@ body{
 
 <script>
 // ── MQTT ──
-const BROKER = 'wss://broker.emqx.io:8084/mqtt';
-const MAC    = 'D48AFC9E85C8';
-const T_ST   = 'mits/'+MAC+'/status';
-const T_CMD  = 'mits/'+MAC+'/cmd';
-const T_OTA  = 'mits/'+MAC+'/ota';
-const T_LOG  = 'mits/'+MAC+'/log';
+const BROKER   = 'wss://broker.emqx.io:8084/mqtt';
+const MAC      = 'D48AFC9E85C8';
+const T_ST     = 'mits/'+MAC+'/status';
+const T_CMD    = 'mits/'+MAC+'/cmd';
+const T_OTA    = 'mits/'+MAC+'/ota';
+const T_LOG    = 'mits/'+MAC+'/log';
+const MAC_OUT  = '885721B65584';
+const T_OUT_LOG= 'mits-out/'+MAC_OUT+'/log';
 
 let ac = {
   power:false, mode:'COOL', setTemp:22,
@@ -720,6 +829,153 @@ let ac = {
   iSee:false, plasma:false, operating:false, cn105:false,
   uptime:null, rssi:null, compFreq:null, errCode:0
 };
+
+// ── CN606 M-NET State ──
+// Temp formula: (raw - 67) / 2  → 0.5°C resolution
+// Calibrated: d[9]=0x75=25°C (indoor return air)
+const CN606_OFFSET = 67;
+let cn606 = {
+  connected: false,
+  lastFrame: null,        // Date
+  data: null,             // Uint8Array: BD frame data bytes (after len byte)
+  sensors: {
+    room:      null,  // d[9]  return air / indoor
+    suction:   null,  // d[29] emış hattı
+    discharge: null,  // d[3]  deşarj borusu
+    hotGas:    null,  // d[28] sıcak gaz
+    head:      null,  // d[55] komp kafası
+    condenser: null,  // d[19] dış serpantin
+    liquid:    null,  // d[21] sıvı hat
+    ipm:       null,  // d[63] İPM
+    outdoor:   null,  // d[?]  dış ortam (missing from current capture)
+  }
+};
+let cn606Buf = [];  // running byte buffer for frame search
+
+// ── CN606 Frame Parser ──
+function cn606DecodeTemp(raw) {
+  if (raw === 0xD5 || raw === 0xF5 || raw === 0x55 || raw === 0x00 || raw === 0xFF) return null;
+  const t = (raw - CN606_OFFSET) / 2;
+  if (t < -30 || t > 110) return null;
+  return t;
+}
+
+function cn606FindFrame(buf) {
+  // Search for BD 81 00 A2 [len] [data x len] [chk]
+  for (let i = 0; i < buf.length - 5; i++) {
+    if (buf[i]===0xBD && buf[i+1]===0x81 && buf[i+2]===0x00 && buf[i+3]===0xA2) {
+      const len = buf[i+4];
+      if (len < 20 || len > 120) continue;  // sanity
+      const end = i + 5 + len + 1;
+      if (end > buf.length) continue;
+      const frame = buf.slice(i, end);
+      return { pos: i, frame, data: frame.slice(5, 5+len), chk: frame[5+len] };
+    }
+  }
+  return null;
+}
+
+function cn606ParseFrame(data) {
+  const t = (pos) => pos < data.length ? cn606DecodeTemp(data[pos]) : null;
+  const fmtT = v => v !== null ? v.toFixed(1) + '°C' : '--°C';
+  cn606.sensors.room      = t(9);
+  cn606.sensors.suction   = t(29);
+  cn606.sensors.discharge = t(3);
+  cn606.sensors.hotGas    = t(28);
+  cn606.sensors.head      = t(55);
+  cn606.sensors.condenser = t(19);
+  cn606.sensors.liquid    = t(21);
+  cn606.sensors.ipm       = t(63);
+  // Outdoor ambient: scan d[70-83] for plausible outdoor temp (~10-40°C range)
+  // Try candidate positions
+  for (const pos of [70,71,72,73,74,75,76,77,78,79,80,81,82,83]) {
+    const v = t(pos);
+    if (v !== null && v >= 5 && v <= 45) { cn606.sensors.outdoor = v; break; }
+  }
+  cn606.data = data;
+  cn606.lastFrame = new Date();
+  cn606.connected = true;
+}
+
+function cn606HtmlDump(frame) {
+  // Colorize the frame hex dump
+  const FILLER = new Set([0xD5,0xF5,0x55]);
+  let parts = [];
+  for (let i = 0; i < frame.length; i++) {
+    const b = frame[i];
+    const hex = b.toString(16).padStart(2,'0').toUpperCase();
+    if (i < 5) { parts.push(`<span class="bd-mark">${hex}</span>`); continue; }
+    const di = i - 5;  // data index
+    const t = cn606DecodeTemp(b);
+    if (FILLER.has(b) || b === 0x00 || b === 0xFF) {
+      parts.push(`<span style="opacity:.35">${hex}</span>`);
+    } else if (t !== null && t <= 15) {
+      parts.push(`<span class="cold-mark" title="d[${di}]=${t.toFixed(1)}°C">${hex}</span>`);
+    } else if (t !== null && t >= 60) {
+      parts.push(`<span class="hot-mark" title="d[${di}]=${t.toFixed(1)}°C">${hex}</span>`);
+    } else if (di === 9 || di === 51) {
+      parts.push(`<span class="room-mark" title="d[${di}]=${t?t.toFixed(1):'?'}°C">${hex}</span>`);
+    } else {
+      parts.push(`<span style="opacity:.8">${hex}</span>`);
+    }
+  }
+  return parts.join(' ');
+}
+
+function cn606OnFrame(hexBytes) {
+  try {
+    const bytes = hexBytes.trim().split(/\s+/).map(x=>parseInt(x,16));
+    cn606Buf.push(...bytes);
+    if (cn606Buf.length > 512) cn606Buf = cn606Buf.slice(-256);
+    const found = cn606FindFrame(cn606Buf);
+    if (found) {
+      cn606ParseFrame(found.data);
+      // Update raw display
+      const rawEl = document.getElementById('cn606RawFrame');
+      if (rawEl) rawEl.innerHTML = cn606HtmlDump(found.frame);
+      renderCN606();
+      // Remove consumed bytes
+      cn606Buf = cn606Buf.slice(found.pos + found.frame.length);
+    }
+  } catch(e){}
+}
+
+// ── CN606 MQTT Client ──
+const cn606Client = mqtt.connect(BROKER, {
+  clientId: 'cn606_' + Math.random().toString(36).slice(2,8),
+  clean: true, reconnectPeriod: 5000, connectTimeout: 10000
+});
+cn606Client.on('connect', () => {
+  cn606Client.subscribe(T_OUT_LOG);
+  document.getElementById('cn606Dot').className = 'cn606-dot ok';
+  document.getElementById('cn606ConnTxt').textContent = 'MQTT Bağlı';
+});
+cn606Client.on('close', () => {
+  document.getElementById('cn606Dot').className = 'cn606-dot err';
+  document.getElementById('cn606ConnTxt').textContent = 'Bağlantı yok';
+  cn606.connected = false;
+});
+cn606Client.on('reconnect', () => {
+  document.getElementById('cn606Dot').className = 'cn606-dot';
+  document.getElementById('cn606ConnTxt').textContent = 'Bağlanıyor';
+});
+cn606Client.on('message', (topic, payload) => {
+  const str = payload.toString();
+  if (str.includes('FRAME[')) {
+    try {
+      const hexPart = str.split(']:')[1];
+      if (hexPart) cn606OnFrame(hexPart);
+    } catch(e){}
+  }
+});
+
+// ── Power estimate from compressor frequency ──
+function estimatePower(hz) {
+  if (!hz || hz <= 0) return 0;
+  // MUZ-FA35VA rated: 1090W @ 50Hz, max 1575W @ ~80Hz
+  if (hz <= 50) return Math.round(hz * 21.8);
+  return Math.round(1090 + (hz - 50) * 16.2);
+}
 
 function calcFeelsLike(T, RH) {
   if (T == null || RH == null || isNaN(T) || isNaN(RH)) return null;
@@ -841,7 +1097,7 @@ function triggerClean(){
 }
 
 // ── Render ──
-function renderAll(){renderPower();renderTemp();renderMode();renderFan();renderVane();renderWVane();renderFunctions();renderInfo();renderOutdoor();renderSystem();}
+function renderAll(){renderPower();renderTemp();renderMode();renderFan();renderVane();renderWVane();renderFunctions();renderInfo();renderOutdoor();renderCN606();renderSystem();}
 
 const MCOL ={HEAT:'heat',COOL:'cool',DRY:'dry',FAN:'fan',AUTO:'auto'};
 const MNAME={HEAT:'Isıtma',COOL:'Soğutma',DRY:'Kurutma',FAN:'Fan',AUTO:'Otomatik'};
@@ -861,7 +1117,9 @@ function renderTemp(){
   const fmtT=(v,min=-90)=>(v!=null&&v>min)?v.toFixed(1)+'°':'--°';
   document.getElementById('setVal').innerHTML=ac.setTemp.toFixed(1)+'<sub>°</sub>';
   document.getElementById('roomTxt').textContent='Oda: '+(ac.roomTemp!=null&&ac.roomTemp>-90?ac.roomTemp.toFixed(1)+'°':'--°');
-  document.getElementById('outVal').textContent=fmtT(ac.outTemp,-50);
+  // outdoor: prefer CN606 outdoor sensor, fallback CN105
+  const outT = (cn606.sensors.outdoor !== null) ? cn606.sensors.outdoor : ac.outTemp;
+  document.getElementById('outVal').textContent = fmtT(outT, -50);
   const h=ac.humidity;
   document.getElementById('humVal').textContent=(h!=null&&h>=0)?h.toFixed(0)+'%':'--%';
   const fl=calcFeelsLike(ac.sensorTemp, ac.humidity);
@@ -920,32 +1178,85 @@ function renderInfo(){
 }
 function renderOutdoor(){
   const fmtT=(v,min=-90)=>(v!=null&&v>min)?v.toFixed(1):'--';
-  document.getElementById('dcOutTemp').innerHTML=fmtT(ac.outTemp,-50)+'<sup>°</sup>';
-  document.getElementById('dcOutBadge').style.display=(ac.outTemp!=null&&ac.outTemp>-50)?'none':'inline-block';
+
+  // Compressor card
   const cc=document.getElementById('dcComp');
   const cs=document.getElementById('dcCompSub');
   const cb=document.getElementById('dcCompBadge');
-  cc.textContent=ac.operating?'Çalışıyor':'Beklemede';
-  cc.style.color=ac.operating?'var(--heat)':'var(--sub)';
-  cs.textContent=ac.operating?'Kompresör devrede':'Kompresör beklemede';
-  cb.textContent=ac.operating?'Aktif':'Pasif';
-  cb.className='dc-badge '+(ac.operating?'active':'off');
-  document.getElementById('dcRoomTemp').innerHTML=fmtT(ac.roomTemp)+'<sup>°</sup>';
+  if(cc){cc.textContent=ac.operating?'Çalışıyor':'Beklemede';cc.style.color=ac.operating?'var(--heat)':'var(--sub)';}
+  if(cs)cs.textContent=ac.operating?'Kompresör devrede':'Kompresör beklemede';
+  if(cb){cb.textContent=ac.operating?'Aktif':'Pasif';cb.className='dc-badge '+(ac.operating?'active':'off');}
+
+  // Room from CN105
+  const rte=document.getElementById('dcRoomTemp');
+  if(rte)rte.innerHTML=fmtT(ac.roomTemp)+'<sup>°</sup>';
+
+  // Humidity
   const h=ac.humidity;
-  document.getElementById('dcHumidity').innerHTML=(h!=null&&h>=0)?h.toFixed(1)+'<span class="dcu">%</span>':'--<span class="dcu">%</span>';
-  document.getElementById('dcHumSub').textContent=
-    (h!=null&&h>=0&&ac.sensorTemp!=null)?'DHT11 · '+ac.sensorTemp.toFixed(1)+'°C':'DHT11 GPIO14';
+  const humEl=document.getElementById('dcHumidity');
+  if(humEl)humEl.innerHTML=(h!=null&&h>=0)?h.toFixed(1)+'<span class="dcu">%</span>':'--<span class="dcu">%</span>';
+  const humSub=document.getElementById('dcHumSub');
+  if(humSub)humSub.textContent=(h!=null&&h>=0&&ac.sensorTemp!=null)?'DHT11 · '+ac.sensorTemp.toFixed(1)+'°C':'DHT11 GPIO14';
+
+  // Frequency
   const cf=ac.compFreq;
   const freqEl=document.getElementById('dcFreq');
   const freqSub=document.getElementById('dcFreqSub');
-  if(cf!=null){
-    freqEl.innerHTML=cf+'<span class="dcu"> Hz</span>';
-    freqSub.textContent=cf===0?'Kompresör durdu':'Çalışıyor · CN105';
-    document.getElementById('dcFreqCard').style.opacity='1';
-  } else {
-    freqEl.innerHTML='--<span class="dcu"> Hz</span>';
-    freqSub.textContent='Kompresör hızı';
+  if(freqEl)freqEl.innerHTML=(cf!=null)?cf+'<span class="dcu"> Hz</span>':'--<span class="dcu"> Hz</span>';
+  if(freqSub)freqSub.textContent=(cf!=null)?(cf===0?'Kompresör durdu':'Çalışıyor · CN105'):'Kompresör hızı';
+
+  // Power estimate
+  const pw = (cf!=null&&cf>0&&ac.operating) ? estimatePower(cf) : 0;
+  const pcEl = document.getElementById('pcVal');
+  const pcSub = document.getElementById('pcSub');
+  const barEl = document.getElementById('powerBar');
+  if(pcEl) pcEl.textContent = pw>0 ? pw : (ac.operating?'...':'--');
+  if(pcSub) pcSub.textContent = pw>0 ? `${cf}Hz · ~${(pw/1000).toFixed(2)}kW tahmin` : (ac.operating?'Frekans alınıyor...':'Kompresör kapalı');
+  if(barEl) barEl.style.width = pw>0 ? Math.min(100,(pw/1575*100)).toFixed(1)+'%' : '0%';
+}
+
+function renderCN606(){
+  const fmtS = (v) => v!==null ? v.toFixed(1)+'<sup>°</sup>' : '--<sup>°</sup>';
+  const s = cn606.sensors;
+
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = fmtS(val);
+  };
+
+  set('scRoom',      s.room);
+  set('scSuction',   s.suction);
+  set('scDischarge', s.discharge);
+  set('scHotGas',    s.hotGas);
+  set('scHead',      s.head);
+  set('scCondenser', s.condenser);
+  set('scLiquid',    s.liquid);
+  set('scIPM',       s.ipm);
+
+  // Outdoor temp: use cn606 if available, fallback to CN105
+  const outEl = document.getElementById('scOutdoor');
+  const outSub = document.getElementById('scOutdoorSub');
+  if(s.outdoor !== null) {
+    if(outEl) outEl.innerHTML = fmtS(s.outdoor);
+    if(outSub) outSub.textContent = 'CN606 M-NET';
+  } else if(ac.outTemp !== null && ac.outTemp > -50) {
+    if(outEl) outEl.innerHTML = fmtS(ac.outTemp);
+    if(outSub) outSub.textContent = 'CN105 (yaklaşık)';
   }
+
+  // CN606 connection indicator
+  const dot = document.getElementById('cn606Dot');
+  const txt = document.getElementById('cn606ConnTxt');
+  if(cn606.connected && cn606.lastFrame) {
+    const secAgo = Math.round((Date.now() - cn606.lastFrame.getTime()) / 1000);
+    if(dot) dot.className = secAgo < 60 ? 'cn606-dot ok' : 'cn606-dot';
+    if(txt) txt.textContent = secAgo < 60 ? `${secAgo}s önce` : `${secAgo}s önce`;
+  }
+
+  // Last frame time
+  const timeEl = document.getElementById('cn606LastTime');
+  if(timeEl && cn606.lastFrame)
+    timeEl.textContent = 'Son güncelleme: ' + cn606.lastFrame.toLocaleTimeString('tr-TR');
 }
 function renderSystem(){
   if(ac.uptime!=null){
@@ -1079,6 +1390,19 @@ function runSchedules(){
   if(ks.length>200)ks.slice(0,100).forEach(k=>delete lastFired[k]);
 }
 setInterval(runSchedules,30000);
+
+// ── Periodic CN606 staleness check ──
+setInterval(() => {
+  if (cn606.lastFrame) {
+    const secAgo = Math.round((Date.now() - cn606.lastFrame.getTime()) / 1000);
+    const dot = document.getElementById('cn606Dot');
+    const txt = document.getElementById('cn606ConnTxt');
+    const timeEl = document.getElementById('cn606LastTime');
+    if (dot) dot.className = secAgo < 60 ? 'cn606-dot ok' : secAgo < 300 ? 'cn606-dot' : 'cn606-dot err';
+    if (txt) txt.textContent = secAgo < 60 ? `${secAgo}s önce` : `${Math.floor(secAgo/60)}d${secAgo%60}s`;
+    if (timeEl) timeEl.textContent = 'Son frame: ' + cn606.lastFrame.toLocaleTimeString('tr-TR') + ' · ' + secAgo + 's önce';
+  }
+}, 5000);
 
 // ── Init ──
 renderAll();
