@@ -241,6 +241,8 @@ body{
 .sc-cold{color:#1565c0}
 .sc-warm{color:#e65100}
 .sc-ipm{color:#6a1b9a}
+.sc-fan{color:#00695c;font-size:18px;font-weight:500;line-height:1.2;letter-spacing:-.2px}
+.sc-fan sup{font-size:9px;font-weight:400;color:var(--sub)}
 
 /* power card */
 .power-card{background:linear-gradient(135deg,#1a237e 0%,#283593 100%);border-radius:16px;padding:14px 14px;margin:8px 12px 0;box-shadow:0 4px 16px rgba(26,35,126,.3)}
@@ -657,6 +659,16 @@ body{
       <div class="sc-val sc-ipm" id="scIPM">--<sup>°</sup></div>
       <div class="sc-sub">İnvertör modül · d[63]</div>
     </div>
+    <div class="sensor-card" style="--sc-color:#00695c">
+      <div class="sc-lbl">Dış Ünite Fan</div>
+      <div class="sc-fan" id="scFanOut">--</div>
+      <div class="sc-sub" id="scFanOutSub">CN606 M-NET · d[2]</div>
+    </div>
+    <div class="sensor-card" style="--sc-color:#009688">
+      <div class="sc-lbl">İç Ünite Fan</div>
+      <div class="sc-fan" id="scFanIn">--</div>
+      <div class="sc-sub" id="scFanInSub">CN105 · set değer</div>
+    </div>
   </div>
 
   <!-- Kompresör Durumu → CN105 -->
@@ -682,6 +694,16 @@ body{
       <div class="dc-label">Nem · DHT11</div>
       <div class="dc-val" id="dcHumidity">--<span class="dcu">%</span></div>
       <div class="dc-sub" id="dcHumSub">GPIO14</div>
+    </div>
+    <div class="data-card">
+      <div class="dc-label">İç Fan Kademesi</div>
+      <div class="dc-val" id="dcFanIn" style="font-size:18px">--</div>
+      <div class="dc-sub" id="dcFanInSub">Ayar değeri</div>
+    </div>
+    <div class="data-card">
+      <div class="dc-label">Hissedilen</div>
+      <div class="dc-val" id="dcFeels">--<sup>°</sup></div>
+      <div class="dc-sub">Nem + sıcaklık</div>
     </div>
   </div>
 
@@ -839,8 +861,8 @@ let ac = {
 const CN606_OFFSET = 67;
 let cn606 = {
   connected: false,
-  lastFrame: null,        // Date
-  data: null,             // Uint8Array: BD frame data bytes (after len byte)
+  lastFrame: null,
+  data: null,
   sensors: {
     room:      null,  // d[9]  return air / indoor
     suction:   null,  // d[29] emış hattı
@@ -850,7 +872,8 @@ let cn606 = {
     condenser: null,  // d[19] dış serpantin
     liquid:    null,  // d[21] sıvı hat
     ipm:       null,  // d[63] İPM
-    outdoor:   null,  // d[?]  dış ortam (missing from current capture)
+    outdoor:   null,  // d[70-83] dış ortam
+    fanStep:   null,  // d[2] dış ünite fan kademesi (0-5)
   }
 };
 let cn606Buf = [];  // running byte buffer for frame search
@@ -878,9 +901,11 @@ function cn606FindFrame(buf) {
   return null;
 }
 
+// Fan step labels for M-NET outdoor unit
+const CN606_FAN_LABELS = ['Kapalı','Düşük','Orta-D','Orta','Yüksek','Maks'];
+
 function cn606ParseFrame(data) {
   const t = (pos) => pos < data.length ? cn606DecodeTemp(data[pos]) : null;
-  const fmtT = v => v !== null ? v.toFixed(1) + '°C' : '--°C';
   cn606.sensors.room      = t(9);
   cn606.sensors.suction   = t(29);
   cn606.sensors.discharge = t(3);
@@ -889,11 +914,15 @@ function cn606ParseFrame(data) {
   cn606.sensors.condenser = t(19);
   cn606.sensors.liquid    = t(21);
   cn606.sensors.ipm       = t(63);
-  // Outdoor ambient: scan d[70-83] for plausible outdoor temp (~10-40°C range)
-  // Try candidate positions
+  // Outdoor ambient: scan d[70-83] for plausible ambient temp
   for (const pos of [70,71,72,73,74,75,76,77,78,79,80,81,82,83]) {
     const v = t(pos);
     if (v !== null && v >= 5 && v <= 45) { cn606.sensors.outdoor = v; break; }
+  }
+  // Outdoor fan step: d[2] — small value 0-5, not a temp
+  if (data.length > 2) {
+    const fs = data[2];
+    cn606.sensors.fanStep = (fs >= 0 && fs <= 5) ? fs : null;
   }
   cn606.data = data;
   cn606.lastFrame = new Date();
@@ -1252,8 +1281,21 @@ function renderOutdoor(){
   const pcSub = document.getElementById('pcSub');
   const barEl = document.getElementById('powerBar');
   if(pcEl) pcEl.textContent = pw>0 ? pw : (ac.operating?'...':'--');
-  if(pcSub) pcSub.textContent = pw>0 ? `${cf}Hz · ~${(pw/1000).toFixed(2)}kW tahmin` : (ac.operating?'Frekans alınıyor...':'Kompresör kapalı');
+  if(pcSub) pcSub.textContent = pw>0 ? `${cf}Hz · ~${(pw/1000).toFixed(2)}kW tahmini` : (ac.operating?'Frekans alınıyor...':'Kompresör kapalı');
   if(barEl) barEl.style.width = pw>0 ? Math.min(100,(pw/1575*100)).toFixed(1)+'%' : '0%';
+
+  // Indoor fan speed (from CN105 set value + operating state)
+  const fanMap = {AUTO:'Oto',QUIET:'Sessiz','1':'Kd.1','2':'Kd.2','3':'Kd.3','4':'Kd.4'};
+  const fanLbl = ac.fan ? (fanMap[ac.fan]||ac.fan) : '--';
+  const fanEl  = document.getElementById('dcFanIn');
+  const fanSub = document.getElementById('dcFanInSub');
+  if(fanEl) fanEl.textContent = ac.operating ? fanLbl : (ac.power ? fanLbl : '--');
+  if(fanSub) fanSub.textContent = ac.operating ? 'CN105 · çalışıyor' : (ac.power ? 'CN105 · bekleme' : 'Kapalı');
+
+  // Feels like
+  const fl = calcFeelsLike(ac.sensorTemp, ac.humidity);
+  const flEl = document.getElementById('dcFeels');
+  if(flEl) flEl.innerHTML = fl!=null ? fl.toFixed(1)+'<sup>°</sup>' : '--<sup>°</sup>';
 }
 
 function renderCN606(){
@@ -1274,6 +1316,28 @@ function renderCN606(){
   set('scLiquid',    s.liquid);
   set('scIPM',       s.ipm);
 
+  // Outdoor fan speed
+  const foEl  = document.getElementById('scFanOut');
+  const foSub = document.getElementById('scFanOutSub');
+  if(foEl) {
+    if(s.fanStep !== null) {
+      foEl.textContent = CN606_FAN_LABELS[s.fanStep] || `Kd.${s.fanStep}`;
+      if(foSub) foSub.textContent = `d[2]=${s.fanStep} · CN606`;
+    } else {
+      foEl.textContent = '--';
+      if(foSub) foSub.textContent = 'Frame bekleniyor';
+    }
+  }
+
+  // Indoor fan speed (from CN105 via ac.fan)
+  const fiEl  = document.getElementById('scFanIn');
+  const fiSub = document.getElementById('scFanInSub');
+  if(fiEl) {
+    const fanMap = {AUTO:'Oto',QUIET:'Sessiz','1':'Kd.1','2':'Kd.2','3':'Kd.3','4':'Kd.4'};
+    fiEl.textContent = ac.fan ? (fanMap[ac.fan]||ac.fan) : '--';
+    if(fiSub) fiSub.textContent = 'CN105 · iç ünite';
+  }
+
   // Outdoor temp: use cn606 if available, fallback to CN105
   const outEl = document.getElementById('scOutdoor');
   const outSub = document.getElementById('scOutdoorSub');
@@ -1285,19 +1349,20 @@ function renderCN606(){
     if(outSub) outSub.textContent = 'CN105 (yaklaşık)';
   }
 
-  // CN606 connection indicator
+  // CN606 connection + last frame indicator
   const dot = document.getElementById('cn606Dot');
   const txt = document.getElementById('cn606ConnTxt');
   if(cn606.connected && cn606.lastFrame) {
     const secAgo = Math.round((Date.now() - cn606.lastFrame.getTime()) / 1000);
-    if(dot) dot.className = secAgo < 60 ? 'cn606-dot ok' : 'cn606-dot';
-    if(txt) txt.textContent = secAgo < 60 ? `${secAgo}s önce` : `${secAgo}s önce`;
+    const age = secAgo < 60 ? `${secAgo}s önce` : secAgo < 3600 ? `${Math.round(secAgo/60)}dk önce` : `${Math.round(secAgo/3600)}sa önce`;
+    if(dot) dot.className = secAgo < 300 ? 'cn606-dot ok' : 'cn606-dot';
+    if(txt) txt.textContent = age;
   }
 
   // Last frame time
   const timeEl = document.getElementById('cn606LastTime');
   if(timeEl && cn606.lastFrame)
-    timeEl.textContent = 'Son güncelleme: ' + cn606.lastFrame.toLocaleTimeString('tr-TR');
+    timeEl.textContent = 'Son frame: ' + cn606.lastFrame.toLocaleTimeString('tr-TR');
 }
 function renderSystem(){
   if(ac.uptime!=null){
