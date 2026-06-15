@@ -707,11 +707,16 @@ body{
     </div>
   </div>
 
-  <!-- CN606 Ham Frame -->
+  <!-- CN606 Ham Frame + MQTT Log -->
   <div class="sec" style="margin:10px 12px 0">
-    <div class="sec-title" style="margin-bottom:5px">Son CN606 Frame</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+      <div class="sec-title">Son CN606 Frame</div>
+      <span id="cn606MqttCount" style="font-size:10px;color:var(--sub)">0 mesaj</span>
+    </div>
     <div class="cn606-frame" id="cn606RawFrame">M-NET bus bekleniyor...</div>
     <div class="cn606-last" id="cn606LastTime"></div>
+    <!-- Son MQTT mesajları (debug) -->
+    <div id="cn606MqttLog" style="margin-top:8px;font-family:monospace;font-size:9px;color:var(--sub);line-height:1.8;max-height:90px;overflow-y:auto;background:#f5f5f5;border-radius:6px;padding:5px 7px;display:none"></div>
   </div>
 
 </div><!-- end tabOutdoor -->
@@ -1111,10 +1116,29 @@ cn606Client.on('reconnect', () => {
   document.getElementById('cn606ConnTxt').textContent = 'Bağlanıyor';
   cn606StartSent = false;
 });
+let cn606MqttMsgCount = 0;
+let cn606MqttLog = [];
+function cn606AddLog(type, text) {
+  cn606MqttMsgCount++;
+  const time = new Date().toLocaleTimeString('tr-TR');
+  cn606MqttLog.unshift(`${time} [${type}] ${text.slice(0,80)}`);
+  if (cn606MqttLog.length > 20) cn606MqttLog = cn606MqttLog.slice(0, 20);
+  const cntEl = document.getElementById('cn606MqttCount');
+  const logEl = document.getElementById('cn606MqttLog');
+  if (cntEl) cntEl.textContent = cn606MqttMsgCount + ' mesaj';
+  if (logEl) {
+    logEl.style.display = 'block';
+    logEl.innerHTML = cn606MqttLog.map(l => `<div>${l}</div>`).join('');
+  }
+}
+
 cn606Client.on('message', (topic, payload) => {
   const str = payload.toString().trim();
+  const tshort = topic.split('/').pop();
+  cn606AddLog(tshort, str);
+
   if (topic === T_OUT_STA) {
-    // Handle plain string status (ONLINE/OFFLINE) from ESP32
+    // Handle plain OFFLINE/ONLINE strings (Last Will etc.)
     if (str === 'OFFLINE' || str.startsWith('OFFLINE')) {
       document.getElementById('cn606Dot').className = 'cn606-dot err';
       document.getElementById('cn606ConnTxt').textContent = 'ESP32 çevrim dışı';
