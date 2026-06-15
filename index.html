@@ -614,55 +614,50 @@ body{
   <!-- CN606 Sıcaklık Sensörleri -->
   <div class="ou-sec-title">Sıcaklık Sensörleri · CN606 M-NET</div>
   <div class="sensor-grid">
-    <div class="sensor-card" style="--sc-color:#1565c0">
-      <div class="sc-lbl">Oda / İç Ünite</div>
-      <div class="sc-val sc-cold" id="scRoom">--<sup>°</sup></div>
-      <div class="sc-sub">Return air · d[9]</div>
-    </div>
-    <div class="sensor-card" style="--sc-color:#0288d1">
-      <div class="sc-lbl">Emış Hattı</div>
-      <div class="sc-val sc-cold" id="scSuction">--<sup>°</sup></div>
-      <div class="sc-sub">Soğutucu giriş · d[29]</div>
-    </div>
     <div class="sensor-card" style="--sc-color:#4caf50">
       <div class="sc-lbl">Dış Ortam</div>
       <div class="sc-val" id="scOutdoor">--<sup>°</sup></div>
       <div class="sc-sub" id="scOutdoorSub">CN606 · belirleniyor</div>
     </div>
-    <div class="sensor-card" style="--sc-color:#d84315">
-      <div class="sc-lbl">Deşarj Borusu</div>
+    <div class="sensor-card" style="--sc-color:#0288d1">
+      <div class="sc-lbl">Emış Hattı</div>
+      <div class="sc-val sc-cold" id="scSuction">--<sup>°</sup></div>
+      <div class="sc-sub" id="scSuctionSub">Soğutucu giriş</div>
+    </div>
+    <div class="sensor-card" style="--sc-color:#b71c1c">
+      <div class="sc-lbl">Deşarj (Yüksek)</div>
       <div class="sc-val sc-hot" id="scDischarge">--<sup>°</sup></div>
-      <div class="sc-sub">Komp. çıkış · d[3]</div>
+      <div class="sc-sub" id="scDischargeSub">Komp. çıkış</div>
     </div>
     <div class="sensor-card" style="--sc-color:#bf360c">
       <div class="sc-lbl">Sıcak Gaz</div>
       <div class="sc-val sc-hot" id="scHotGas">--<sup>°</sup></div>
-      <div class="sc-sub">Yüksek basınç · d[28]</div>
-    </div>
-    <div class="sensor-card" style="--sc-color:#b71c1c">
-      <div class="sc-lbl">Komp. Kafası</div>
-      <div class="sc-val sc-hot" id="scHead">--<sup>°</sup></div>
-      <div class="sc-sub">Maks deşarj · d[55]</div>
+      <div class="sc-sub" id="scHotGasSub">Yüksek basınç</div>
     </div>
     <div class="sensor-card" style="--sc-color:#e65100">
       <div class="sc-lbl">Dış Serpantin</div>
       <div class="sc-val sc-warm" id="scCondenser">--<sup>°</sup></div>
-      <div class="sc-sub">Kondenser bobini · d[19]</div>
+      <div class="sc-sub" id="scCondenserSub">Kondenser bobini</div>
     </div>
     <div class="sensor-card" style="--sc-color:#f57c00">
       <div class="sc-lbl">Sıvı Hat</div>
       <div class="sc-val sc-warm" id="scLiquid">--<sup>°</sup></div>
-      <div class="sc-sub">Yoğuşma sonrası · d[21]</div>
+      <div class="sc-sub" id="scLiquidSub">Yoğuşma sonrası</div>
+    </div>
+    <div class="sensor-card" style="--sc-color:#d84315">
+      <div class="sc-lbl">Komp. Kafası</div>
+      <div class="sc-val sc-hot" id="scHead">--<sup>°</sup></div>
+      <div class="sc-sub" id="scHeadSub">Deşarj bölgesi</div>
     </div>
     <div class="sensor-card" style="--sc-color:#6a1b9a">
       <div class="sc-lbl">İPM Sıcaklığı</div>
       <div class="sc-val sc-ipm" id="scIPM">--<sup>°</sup></div>
-      <div class="sc-sub">İnvertör modül · d[63]</div>
+      <div class="sc-sub" id="scIPMSub">İnvertör modül</div>
     </div>
     <div class="sensor-card" style="--sc-color:#00695c">
       <div class="sc-lbl">Dış Ünite Fan</div>
       <div class="sc-fan" id="scFanOut">--</div>
-      <div class="sc-sub" id="scFanOutSub">CN606 M-NET · d[2]</div>
+      <div class="sc-sub" id="scFanOutSub">CN606 M-NET</div>
     </div>
     <div class="sensor-card" style="--sc-color:#009688">
       <div class="sc-lbl">İç Ünite Fan</div>
@@ -861,25 +856,20 @@ let ac = {
 };
 
 // ── CN606 M-NET State ──
-// Frame format: 60-byte burst [55] [95 85 cmd DATA×13]×3 [tail]
 // Temp formula: (raw - 67) / 2 → 0.5°C resolution
-// Calibrated: frame[24]=0x75=25°C (indoor temp confirmed)
 // Filler bytes (skip): D5, F5, 55, 00, FF
+// Type A (95 85): byte positions relative to 0x95 start
+// Type B (95 95 FD): different positions, outdoor at 47
 const CN606_OFFSET = 67;
-// Sensor byte offsets relative to start of first 95 85 pattern in burst:
 const CN606_MAP = {
-  liquid:    3,   // 0xA5=49°C  sıvı hat
-  hotGas:    6,   // 0xD4=72.5°C sıcak gaz
-  condenser: 8,   // 0x95=41°C  dış serpantin
-  head:      10,  // 0xB7=58°C  komp kafası alanı
-  discharge: 19,  // 0xB5=57°C  deşarj bölgesi
-  suction:   21,  // 0x65=17°C  emış hattı ✓
-  dischargeH:22,  // 0xF4=88.5°C deşarj yüksek
-  room:      23,  // 0x75=25°C  oda/iç ünite ✓
-  liquid2:   35,  // 0xAA=51.5°C sıvı/kondenser 2
-  condenser2:36,  // 0x95=41°C  kondenser 2
-  hotGas2:   38,  // 0xD1=71°C  sıcak gaz 2
-  ipm:       45,  // 0xC5=65°C  IPM modül ✓
+  liquid:    3,
+  hotGas:    6,
+  condenser: 8,
+  head:      10,
+  discharge: 19,
+  suction:   21,
+  dischargeH:22,
+  ipm:       45,
 };
 
 let cn606 = {
@@ -942,70 +932,77 @@ function cn606FindFrame(buf) {
   return null;
 }
 
-// Fan step labels for M-NET outdoor unit
 const CN606_FAN_LABELS = ['Kapalı','Düşük','Orta-D','Orta','Yüksek','Maks'];
+
+// Only update sensor if we got a real (non-null) value — preserves last known good
+function cn606Set(key, val) { if (val !== null) cn606.sensors[key] = val; }
 
 function cn606ParseFrame(data, ftype) {
   const t = (pos) => pos < data.length ? cn606DecodeTemp(data[pos]) : null;
 
-  if (ftype === 'BD') {
-    // Legacy BD 81 00 A2 format
-    cn606.sensors.room      = t(9);
-    cn606.sensors.suction   = t(29);
-    cn606.sensors.discharge = t(3);
-    cn606.sensors.hotGas    = t(28);
-    cn606.sensors.head      = t(55);
-    cn606.sensors.condenser = t(19);
-    cn606.sensors.liquid    = t(21);
-    cn606.sensors.ipm       = t(63);
-    for (const pos of [70,71,72,73,74,75,76,77,78,79,80,81,82,83]) {
-      const v = t(pos); if (v !== null && v >= 5 && v <= 45) { cn606.sensors.outdoor = v; break; }
-    }
-
-  } else if (ftype === 'A') {
-    // 95 85 XX burst — calibrated 2026-06 from capture
-    // Positions relative to start of 0x95 byte
-    cn606.sensors.room      = t(23);  // 0x75=25°C confirmed
-    cn606.sensors.suction   = t(21);  // 0x65=17°C confirmed
-    cn606.sensors.dischargeH= t(22);  // 0xF4=88.5°C
-    cn606.sensors.liquid    = t(3);   // 0xA5=49°C
-    cn606.sensors.hotGas    = t(6);   // 0xD4=72.5°C
-    cn606.sensors.condenser = t(8);   // 0x95=41°C
-    cn606.sensors.head      = t(10);  // 0xB7=58°C
-    cn606.sensors.ipm       = t(45);  // 0xC5=65°C
-    cn606.sensors.discharge = t(19);  // 0xB5=57°C
+  if (ftype === 'A') {
+    // 95 85 frame — positions relative to 0x95 byte
+    cn606Set('suction',    t(21));
+    cn606Set('dischargeH', t(22));
+    cn606Set('liquid',     t(3));
+    cn606Set('hotGas',     t(6));
+    cn606Set('condenser',  t(8));
+    cn606Set('head',       t(10));
+    cn606Set('ipm',        t(45));
+    cn606Set('discharge',  t(19));
+    // pos 23 label belirsiz: outdoor unit kendi hava sensörü veya setpoint olabilir
+    // CN105 oda sıcaklığını bilmiyor — outdoor card'a yansıt
+    cn606Set('outdoor', t(23));
 
   } else if (ftype === 'B') {
-    // 95 95 FD XX burst — calibrated 2026-06 from capture
-    cn606.sensors.room      = t(12);  // 0x75=25°C confirmed
-    cn606.sensors.suction   = t(26);  // 0x65=17°C confirmed
-    cn606.sensors.outdoor   = t(47);  // 0x74=24.5°C confirmed (user said ~24.2°C)
-    cn606.sensors.dischargeH= t(2);   // 0xFD=93°C
-    cn606.sensors.hotGas    = t(21);  // 0xDD=77°C
-    cn606.sensors.condenser = t(0);   // 0x95=41°C
-    cn606.sensors.liquid    = t(3);   // 0xAB=52°C
-    cn606.sensors.ipm       = t(63);  // 0xD4=72.5°C (tentative)
+    // 95 95 FD frame
+    cn606Set('suction',    t(26));
+    cn606Set('outdoor',    t(47));
+    cn606Set('dischargeH', t(2));
+    cn606Set('hotGas',     t(21));
+    cn606Set('condenser',  t(0));
+    cn606Set('liquid',     t(3));
+    cn606Set('ipm',        t(63));
+
+  } else if (ftype === 'BD') {
+    cn606Set('suction',   t(29));
+    cn606Set('discharge', t(3));
+    cn606Set('hotGas',    t(28));
+    cn606Set('head',      t(55));
+    cn606Set('condenser', t(19));
+    cn606Set('liquid',    t(21));
+    cn606Set('ipm',       t(63));
+    for (const pos of [70,71,72,73,74,75,76,77,78,79,80,81,82,83]) {
+      const v = t(pos); if (v !== null && v >= 5 && v <= 45) { cn606Set('outdoor', v); break; }
+    }
 
   } else {
-    // Type X: unknown format — scan for plausible room temp byte (15-35°C = raw 0x61–0x89)
-    // 0x75=25°C is the typical anchor but any room-range value is valid
-    for (let i = 5; i < data.length - 5; i++) {
-      const b = data[i];
-      if (b >= 0x61 && b <= 0x89 && !CN606_FILLER.has(b)) {
-        cn606.sensors.room = t(i);
-        // Check nearby bytes for suction (cold, 5-20°C) and discharge (hot, >60°C)
-        for (let d = 1; d <= 5; d++) {
-          const prev = t(i - d);
-          if (prev !== null && prev >= 5 && prev <= 20 && cn606.sensors.suction === null) cn606.sensors.suction = prev;
-          if (prev !== null && prev > 60 && cn606.sensors.dischargeH === null) cn606.sensors.dischargeH = prev;
-        }
-        break;
+    // Type X: format bilinmiyor — sıcaklık aralığına göre sınıflandır
+    // HOT >60°C: deşarj, IPM
+    // COLD 5–20°C: emış
+    // MID 20–50°C: dış ortam, serpantin
+    let bestHot = null, bestCold = null, bestMid = null;
+    let bestHotV = -Infinity, bestColdV = Infinity, bestMidDist = Infinity;
+    const midTarget = 30; // dış ortam için hedef merkez
+
+    for (let i = 3; i < data.length - 3; i++) {
+      const v = t(i);
+      if (v === null) continue;
+      if (v > 60 && v > bestHotV)  { bestHot = v; bestHotV = v; }
+      if (v >= 5 && v <= 20 && v < bestColdV) { bestCold = v; bestColdV = v; }
+      if (v > 20 && v <= 50) {
+        const d = Math.abs(v - midTarget);
+        if (d < bestMidDist) { bestMid = v; bestMidDist = d; }
       }
     }
+    cn606Set('dischargeH', bestHot);
+    cn606Set('suction',    bestCold);
+    cn606Set('outdoor',    bestMid);
   }
 
   cn606.rawBurst = data;
   cn606.lastFrame = new Date();
+  cn606.lastFtype = ftype;
   cn606.connected = true;
 }
 
@@ -1433,10 +1430,9 @@ function renderCN606(){
     const el = document.getElementById(id);
     if(el) el.innerHTML = fmtS(val);
   };
+  const setSub = (id, txt) => { const el=document.getElementById(id); if(el) el.textContent=txt; };
 
-  set('scRoom',      s.room);
   set('scSuction',   s.suction);
-  // Prefer high discharge (88.5°C sensor) over lower zone
   set('scDischarge', s.dischargeH !== null ? s.dischargeH : s.discharge);
   set('scHotGas',    s.hotGas);
   set('scHead',      s.head !== null ? s.head : s.discharge);
@@ -1444,20 +1440,27 @@ function renderCN606(){
   set('scLiquid',    s.liquid);
   set('scIPM',       s.ipm);
 
+  // Sub-labels göster (hangi frame tipinden geldi)
+  if (cn606.lastFtype) {
+    setSub('scSuctionSub',  `Emış · CN606 [${cn606.lastFtype}]`);
+    setSub('scDischargeSub',`Deşarj · CN606 [${cn606.lastFtype}]`);
+    setSub('scCondenserSub',`Serpantin · CN606 [${cn606.lastFtype}]`);
+    setSub('scIPMSub',      `İPM · CN606 [${cn606.lastFtype}]`);
+  }
+
   // Outdoor fan speed
   const foEl  = document.getElementById('scFanOut');
   const foSub = document.getElementById('scFanOutSub');
   if(foEl) {
     if(s.fanStep !== null) {
       foEl.textContent = CN606_FAN_LABELS[s.fanStep] || `Kd.${s.fanStep}`;
-      if(foSub) foSub.textContent = `d[2]=${s.fanStep} · CN606`;
+      if(foSub) foSub.textContent = `Kademe ${s.fanStep} · CN606`;
     } else {
       foEl.textContent = '--';
-      if(foSub) foSub.textContent = 'Frame bekleniyor';
     }
   }
 
-  // Indoor fan speed (from CN105 via ac.fan)
+  // Indoor fan speed (from CN105)
   const fiEl  = document.getElementById('scFanIn');
   const fiSub = document.getElementById('scFanInSub');
   if(fiEl) {
@@ -1466,15 +1469,15 @@ function renderCN606(){
     if(fiSub) fiSub.textContent = 'CN105 · iç ünite';
   }
 
-  // Outdoor temp: use cn606 if available, fallback to CN105
+  // Outdoor temp: cn606 öncelikli, CN105 fallback
   const outEl = document.getElementById('scOutdoor');
   const outSub = document.getElementById('scOutdoorSub');
   if(s.outdoor !== null) {
     if(outEl) outEl.innerHTML = fmtS(s.outdoor);
-    if(outSub) outSub.textContent = 'CN606 M-NET';
+    if(outSub) outSub.textContent = `CN606 [${cn606.lastFtype||'?'}] · kalibre edilecek`;
   } else if(ac.outTemp !== null && ac.outTemp > -50) {
     if(outEl) outEl.innerHTML = fmtS(ac.outTemp);
-    if(outSub) outSub.textContent = 'CN105 (yaklaşık)';
+    if(outSub) outSub.textContent = 'CN105 · yaklaşık';
   }
 
   // CN606 connection + last frame indicator
