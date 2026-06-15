@@ -946,8 +946,18 @@ function cn606FindFrame(buf) {
       return { pos: i, data: buf.slice(i+5, i+5+len), ftype: 'BD' };
     }
   }
-  // Type X kaldırıldı — gürültü baytları sahte "sıcaklık" üretiyor
-  // Gerçek veri sadece A/B/BD frame'lerinden gelir
+  // Type X: kalite kontrollü — hem HOT (>60°C) hem COLD (5-20°C) gerekli
+  // Sadece gürültü içeren frame'ler (FE/00/FF) reddedilir
+  if (buf.length >= 40) {
+    let hasHot = false, hasCold = false;
+    for (let i = 3; i < buf.length - 3; i++) {
+      if (CN606_FILLER.has(buf[i])) continue;
+      const v = (buf[i] - 67) / 2;
+      if (v > 60 && v <= 110) hasHot = true;
+      if (v >= 5 && v <= 20)  hasCold = true;
+      if (hasHot && hasCold) return { pos: 0, data: buf.slice(0), ftype: 'X' };
+    }
+  }
   return null;
 }
 
@@ -1108,15 +1118,15 @@ function cn606OnFrame(hexBytes) {
   }
 }
 
-// Auto-refresh: UART restart every 90s to get fresh burst
+// Auto-refresh: UART restart every 15s — firmware buffer sadece UART_OFF'ta flush oluyor
 let cn606AutoTimer = null;
 function cn606StartAutoRefresh() {
   if (cn606AutoTimer) return;
   cn606AutoTimer = setInterval(() => {
-    if (!cn606UartOn) return;
+    cn606Buf = []; // eski buffer'ı temizle, taze veri gelsin
     cn606StartSent = false;
     cn606SendUart();
-  }, 90000);
+  }, 15000);
 }
 
 // ── CN606 MQTT Client ──
@@ -1131,7 +1141,7 @@ function cn606SendUart() {
     {uart: false},
     {rx: 16}, {tx: 17},
     {baud: 9600}, {parity: 1},
-    {invert: true}, {gap: 5},
+    {invert: true}, {gap: 20},
     {passive: true},
     {uart: true}
   ];
