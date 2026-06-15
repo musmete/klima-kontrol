@@ -630,10 +630,10 @@ body{
       <div class="sc-val sc-hot" id="scDischarge">--<sup>°</sup></div>
       <div class="sc-sub" id="scDischargeSub">Komp. çıkış</div>
     </div>
-    <div class="sensor-card" style="--sc-color:#bf360c">
-      <div class="sc-lbl">Sıcak Gaz</div>
-      <div class="sc-val sc-hot" id="scHotGas">--<sup>°</sup></div>
-      <div class="sc-sub" id="scHotGasSub">Yüksek basınç</div>
+    <div class="sensor-card" style="--sc-color:#388e3c">
+      <div class="sc-lbl">Oda Sıcaklığı</div>
+      <div class="sc-val" id="scHotGas">--<sup>°</sup></div>
+      <div class="sc-sub" id="scHotGasSub">RoomTemp · M-NET</div>
     </div>
     <div class="sensor-card" style="--sc-color:#e65100">
       <div class="sc-lbl">Dış Serpantin</div>
@@ -641,9 +641,9 @@ body{
       <div class="sc-sub" id="scCondenserSub">Kondenser bobini</div>
     </div>
     <div class="sensor-card" style="--sc-color:#f57c00">
-      <div class="sc-lbl">Sıvı Hat</div>
+      <div class="sc-lbl">Dış HEX</div>
       <div class="sc-val sc-warm" id="scLiquid">--<sup>°</sup></div>
-      <div class="sc-sub" id="scLiquidSub">Yoğuşma sonrası</div>
+      <div class="sc-sub" id="scLiquidSub">OutHEXtemp · M-NET</div>
     </div>
     <div class="sensor-card" style="--sc-color:#d84315">
       <div class="sc-lbl">Komp. Kafası</div>
@@ -1574,10 +1574,12 @@ function renderCN606(){
 
   // Sub-labels göster (hangi frame tipinden geldi)
   if (cn606.lastFtype) {
-    setSub('scSuctionSub',  `Emış · CN606 [${cn606.lastFtype}]`);
-    setSub('scDischargeSub',`Deşarj · CN606 [${cn606.lastFtype}]`);
-    setSub('scCondenserSub',`Serpantin · CN606 [${cn606.lastFtype}]`);
-    setSub('scIPMSub',      `İPM · CN606 [${cn606.lastFtype}]`);
+    setSub('scSuctionSub',  `EvaTemp · CN606 [${cn606.lastFtype}]`);
+    setSub('scDischargeSub',`DiscTemp · CN606 [${cn606.lastFtype}]`);
+    setSub('scHotGasSub',   `RoomTemp · CN606 [${cn606.lastFtype}]`);
+    setSub('scLiquidSub',   `OutHEXtemp · CN606 [${cn606.lastFtype}]`);
+    setSub('scCondenserSub',`CoilTemp · CN606 [${cn606.lastFtype}]`);
+    setSub('scIPMSub',      `PCboardTemp · CN606 [${cn606.lastFtype}]`);
   }
 
   // Outdoor fan speed
