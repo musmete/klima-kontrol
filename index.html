@@ -914,7 +914,9 @@ let cn606 = {
 let cn606Buf = [];
 
 // ── CN606 Frame Parser ──
-const CN606_FILLER = new Set([0xD5, 0xF5, 0x55, 0x00, 0xFF]);
+// M-NET protokol byte'ları: adres ve kontrol baytları sıcaklık gibi decode edilir ama gerçek sensör DEĞİL
+// 0x95 → 41°C (dış ünite adresi), 0x85 → 33°C (iç ünite adresi) → bunları atla
+const CN606_FILLER = new Set([0xD5, 0xF5, 0x55, 0x00, 0xFF, 0x95, 0x85]);
 
 function cn606DecodeTemp(raw) {
   if (CN606_FILLER.has(raw)) return null;
@@ -1019,7 +1021,7 @@ function cn606ParseFrame(data, ftype) {
       if (v === null) continue;
       if (v > 60 && v > bestHotV)  { bestHot = v; bestHotV = v; }
       if (v >= 5 && v <= 20 && v < bestColdV) { bestCold = v; bestColdV = v; }
-      if (v > 20 && v <= 50) {
+      if (v > 20 && v <= 38) { // dış ortam 20-38°C (kondenser 40+°C ayrı kategori)
         const d = Math.abs(v - midTarget);
         if (d < bestMidDist) { bestMid = v; bestMidDist = d; }
       }
@@ -1118,14 +1120,16 @@ function cn606OnFrame(hexBytes) {
   }
 }
 
-// Auto-refresh: UART restart every 15s — firmware buffer sadece UART_OFF'ta flush oluyor
+// Auto-refresh: her 15s'de hızlı flush (uart:false→true, sadece 0.5s dead time)
+// Tam restart (cn606SendUart) sadece ilk bağlantıda ve ↺'de yapılır
 let cn606AutoTimer = null;
 function cn606StartAutoRefresh() {
   if (cn606AutoTimer) return;
   cn606AutoTimer = setInterval(() => {
-    cn606Buf = []; // eski buffer'ı temizle, taze veri gelsin
-    cn606StartSent = false;
-    cn606SendUart();
+    cn606Buf = [];
+    // Hızlı toggle: ayarlar korunur, sadece buffer flush edilir
+    cn606Client.publish(T_OUT_CMD, JSON.stringify({uart: false}));
+    setTimeout(() => cn606Client.publish(T_OUT_CMD, JSON.stringify({uart: true})), 600);
   }, 15000);
 }
 
