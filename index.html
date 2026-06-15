@@ -1315,22 +1315,9 @@ function cn606SystemHealth() {
     else if (s.ipm > 80) warnings.push(`İPM ${s.ipm.toFixed(0)}°C (sıcak)`);
   }
 
-  // Süperheat kontrolü (normal: 5-20°C soğutma, 4-12°C ısıtma)
+  // SH/SC: yaklaşık formül, sağlık skoru için kullanılmıyor (doğrudan ölçüm yok)
   const sh = cn606CalcSH();
-  if (sh !== null) {
-    const shMin = (ac.mode === 'HEAT') ? 3 : 5;
-    const shMax = (ac.mode === 'HEAT') ? 15 : 20;
-    if (sh < 2) problems.push(`SH ${sh.toFixed(1)}°C (sıvı taşma!)`);
-    else if (sh < shMin) warnings.push(`SH ${sh.toFixed(1)}°C (düşük)`);
-    else if (sh > shMax) warnings.push(`SH ${sh.toFixed(1)}°C (yüksek)`);
-  }
-
-  // Alt soğuma kontrolü (normal: 5-15°C)
   const sc = cn606CalcSC();
-  if (sc !== null) {
-    if (sc < 2) warnings.push(`SC ${sc.toFixed(1)}°C (düşük)`);
-    else if (sc > 20) warnings.push(`SC ${sc.toFixed(1)}°C (yüksek)`);
-  }
 
   if (problems.length > 0) {
     return { label: 'SORUN', sub: problems[0], color: '#c62828', score: 1 };
@@ -1338,7 +1325,9 @@ function cn606SystemHealth() {
   if (warnings.length > 0) {
     return { label: 'Uyarı', sub: warnings.join(' · '), color: '#e65100', score: 2 };
   }
-  return { label: 'Normal', sub: `${freq}Hz · SH${sh !== null ? sh.toFixed(1) : '--'}° SC${sc !== null ? sc.toFixed(1) : '--'}°`, color: '#2e7d32', score: 3 };
+  const shStr = sh !== null ? `~${sh.toFixed(1)}°` : '--';
+  const scStr = sc !== null ? `~${sc.toFixed(1)}°` : '--';
+  return { label: 'Normal', sub: `${freq}Hz · SH${shStr} SC${scStr}`, color: '#2e7d32', score: 3 };
 }
 
 function estimatePower(hz) {
@@ -1679,26 +1668,18 @@ function renderCN606(){
 
   const shEl  = document.getElementById('dcSH');
   const shSub = document.getElementById('dcSHSub');
-  if(shEl) shEl.innerHTML = sh !== null ? sh.toFixed(1)+'<sup>°</sup>' : '--<sup>°</sup>';
+  if(shEl) shEl.innerHTML = sh !== null ? '~'+sh.toFixed(1)+'<sup>°</sup>' : '--<sup>°</sup>';
   if(shSub) {
-    const shOk = sh !== null && sh >= 5 && sh <= 20;
-    const shWarn = sh !== null && (sh < 5 || sh > 20);
-    shSub.textContent = sh !== null ?
-      (shOk ? 'Normal (5-20°C)' : shWarn ? (sh < 5 ? 'Düşük → doldurma fazla?' : 'Yüksek → az doldurma?') : '') :
-      'Emış + evap referansı';
-    shSub.style.color = shWarn ? '#e65100' : '';
+    shSub.textContent = sh !== null ? 'Yaklaşık (5-20°C normal)' : 'Emış + evap referansı';
+    shSub.style.color = '';
   }
 
   const scEl  = document.getElementById('dcSC');
   const scSub = document.getElementById('dcSCSub');
-  if(scEl) scEl.innerHTML = sc !== null ? sc.toFixed(1)+'<sup>°</sup>' : '--<sup>°</sup>';
+  if(scEl) scEl.innerHTML = sc !== null ? '~'+sc.toFixed(1)+'<sup>°</sup>' : '--<sup>°</sup>';
   if(scSub) {
-    const scOk = sc !== null && sc >= 5 && sc <= 15;
-    const scWarn = sc !== null && (sc < 5 || sc > 15);
-    scSub.textContent = sc !== null ?
-      (scOk ? 'Normal (5-15°C)' : sc < 5 ? 'Düşük → az doldurma?' : 'Yüksek → fazla doldurma?') :
-      'Kondenser - sıvı hat';
-    scSub.style.color = scWarn ? '#e65100' : '';
+    scSub.textContent = sc !== null ? 'Yaklaşık (5-15°C normal)' : 'Kondenser - sıvı hat';
+    scSub.style.color = '';
   }
 
   const hEl  = document.getElementById('dcHealth');
