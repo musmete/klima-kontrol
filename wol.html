@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Wake on LAN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+:root{
+  --red:#cc0018;--bg:#eaecf0;--card:#fff;
+  --text:#111827;--sub:#6b7280;--border:#e5e7eb;
+  --on:#2e7d32;--warn:#e65100;
+}
+html{background:var(--red)}
+body{
+  font-family:'Barlow',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--bg);max-width:430px;margin:0 auto;
+  min-height:100vh;
+}
+.topbar{
+  background:linear-gradient(150deg,#d80018 0%,#9a0012 100%);
+  padding:50px 18px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+}
+.brand-txt .name{
+  font-family:'Barlow Condensed',Arial,sans-serif;
+  font-size:20px;font-weight:800;color:#fff;letter-spacing:.2px;line-height:1;
+}
+.brand-txt .sub{
+  color:rgba(255,255,255,.55);font-size:11px;letter-spacing:.5px;
+  margin-top:2px;font-weight:500;text-transform:uppercase;
+}
+.conn-pill{
+  background:rgba(0,0,0,.28);border-radius:20px;
+  padding:5px 12px;display:flex;align-items:center;gap:6px;
+  border:1px solid rgba(255,255,255,.1);
+}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.25);transition:.4s}
+.conn-dot.ok {background:#4ade80;box-shadow:0 0 8px #4ade8099}
+.conn-dot.err{background:#f87171;box-shadow:0 0 6px #f8717199}
+.conn-txt{color:rgba(255,255,255,.9);font-size:11px;font-weight:600;letter-spacing:.3px}
+
+.body{padding:16px}
+
+.card{
+  background:var(--card);border-radius:18px;padding:20px 18px;
+  box-shadow:0 4px 20px rgba(0,0,0,.08);
+  margin-bottom:12px;
+}
+.card-title{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+
+/* MAC input */
+.mac-row{display:flex;gap:8px;align-items:center}
+.mac-input{
+  flex:1;border:1.5px solid var(--border);border-radius:10px;
+  padding:10px 13px;font-family:'Barlow Condensed',monospace;
+  font-size:16px;font-weight:600;letter-spacing:.5px;color:var(--text);
+  outline:none;transition:.15s;background:#fafafa;
+}
+.mac-input:focus{border-color:var(--red);background:#fff}
+.mac-input::placeholder{color:#c0c0c0;font-weight:400}
+.mac-save-btn{
+  border:1.5px solid var(--border);background:#fff;border-radius:10px;
+  padding:10px 14px;font-size:12px;font-weight:700;color:var(--sub);
+  cursor:pointer;transition:.12s;white-space:nowrap;
+}
+.mac-save-btn:active{background:#f5f5f5}
+
+/* WoL button */
+.wol-btn-wrap{text-align:center;padding:10px 0 4px}
+.wol-btn{
+  width:160px;height:160px;border-radius:50%;border:none;
+  background:linear-gradient(145deg,#d80018,#9a0012);
+  color:#fff;cursor:pointer;
+  display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+  box-shadow:0 8px 30px rgba(200,0,20,.35),0 2px 8px rgba(0,0,0,.2);
+  transition:.18s;user-select:none;-webkit-user-select:none;
+  position:relative;
+}
+.wol-btn:active:not(:disabled){transform:scale(.93);box-shadow:0 4px 14px rgba(200,0,20,.3)}
+.wol-btn:disabled{background:linear-gradient(145deg,#aaa,#888);box-shadow:none;cursor:not-allowed}
+.wol-btn .icon{font-size:44px;margin-bottom:4px;line-height:1}
+.wol-btn .label{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px}
+.wol-btn .sublabel{font-size:10px;opacity:.75;margin-top:2px;letter-spacing:.3px}
+
+/* Feedback */
+.feedback{
+  margin-top:12px;padding:10px 14px;border-radius:10px;
+  font-size:12px;font-weight:600;text-align:center;
+  display:none;
+}
+.feedback.sent{background:#e8f5e9;color:#2e7d32;display:block}
+.feedback.err {background:#fce8e6;color:#c62828;display:block}
+.feedback.info{background:#e3f2fd;color:#1565c0;display:block}
+
+/* Relay info */
+.relay-box{
+  background:#f9f9f9;border:1px solid var(--border);border-radius:10px;
+  padding:10px 13px;font-size:11px;color:var(--sub);line-height:1.7;
+}
+.relay-box .hl{color:var(--text);font-weight:600}
+.relay-box code{
+  background:#eee;padding:1px 5px;border-radius:4px;
+  font-size:10.5px;font-family:monospace;color:#444;
+}
+
+/* History */
+.hist-item{
+  padding:7px 0;border-bottom:1px solid var(--border);
+  font-size:12px;display:flex;align-items:center;gap:8px;
+}
+.hist-item:last-child{border-bottom:none}
+.hist-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.hist-dot.ok {background:#4ade80}
+.hist-dot.err{background:#f87171}
+.hist-time{color:var(--sub);font-size:10px;margin-left:auto}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand-txt">
+    <div class="name">Wake on LAN</div>
+    <div class="sub">ESP32 · iç ünite relay</div>
+  </div>
+  <div class="conn-pill">
+    <div class="conn-dot" id="connDot"></div>
+    <span class="conn-txt" id="connTxt">Bağlanıyor</span>
+  </div>
+</div>
+
+<div class="body">
+
+  <!-- MAC Address -->
+  <div class="card">
+    <div class="card-title">PC MAC Adresi</div>
+    <div class="mac-row">
+      <input class="mac-input" id="macInput" type="text"
+        placeholder="AA:BB:CC:DD:EE:FF"
+        maxlength="17"
+        value="" />
+      <button class="mac-save-btn" onclick="saveMac()">Kaydet</button>
+    </div>
+    <div id="macHint" style="font-size:11px;color:var(--sub);margin-top:7px;padding-left:2px">
+      Windows: <code style="font-family:monospace;background:#eee;padding:1px 4px;border-radius:3px;font-size:10px">ipconfig /all</code> →
+      Physical Address satırı
+    </div>
+  </div>
+
+  <!-- WoL Button -->
+  <div class="card">
+    <div class="card-title">Bilgisayarı Uyandır</div>
+    <div class="wol-btn-wrap">
+      <button class="wol-btn" id="wolBtn" onclick="sendWoL()" disabled>
+        <span class="icon">⏻</span>
+        <span class="label">UYANDUR</span>
+        <span class="sublabel">Magic Packet</span>
+      </button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <!-- Relay Info -->
+  <div class="card">
+    <div class="card-title">Bağlantı Bilgisi</div>
+    <div class="relay-box">
+      <span class="hl">Relay:</span> ESP32 iç ünite
+      (<code>D48AFC9E85C8</code>, <code>192.168.1.2</code>)<br>
+      <span class="hl">Broker:</span> <code>broker.emqx.io:8084</code> (WSS)<br>
+      <span class="hl">Komut:</span> <code>mits/D48AFC9E85C8/cmd</code><br>
+      <span class="hl">Format:</span> <code>{"wol":"AA:BB:CC:DD:EE:FF"}</code><br>
+      <span class="hl">UDP:</span> 255.255.255.255:9 (ESP32 gönderir)
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <div class="card-title">Geçmiş</div>
+    <div id="histList">
+      <div style="font-size:12px;color:var(--sub);text-align:center;padding:8px 0">Henüz işlem yok</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const BROKER  = 'wss://broker.emqx.io:8084/mqtt';
+const MAC_ESP = 'D48AFC9E85C8';
+const T_CMD   = 'mits/' + MAC_ESP + '/cmd';
+const T_LOG   = 'mits/' + MAC_ESP + '/log';
+const T_ST    = 'mits/' + MAC_ESP + '/status';
+const STORAGE_KEY = 'wol_pc_mac';
+
+let mqttReady = false;
+let history   = [];
+
+// ── Load saved MAC ──
+const savedMac = localStorage.getItem(STORAGE_KEY);
+if (savedMac) document.getElementById('macInput').value = savedMac;
+validateMacInput();
+
+function saveMac() {
+  const mac = document.getElementById('macInput').value.trim().toUpperCase();
+  if (!validateMac(mac)) {
+    showFeedback('Geçersiz MAC formatı (AA:BB:CC:DD:EE:FF)', 'err');
+    return;
+  }
+  localStorage.setItem(STORAGE_KEY, mac);
+  document.getElementById('macInput').value = mac;
+  validateMacInput();
+  showFeedback('MAC adresi kaydedildi', 'info');
+}
+
+function validateMac(mac) {
+  return /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/.test(mac);
+}
+
+function validateMacInput() {
+  const mac = document.getElementById('macInput').value.trim();
+  const btn = document.getElementById('wolBtn');
+  if (validateMac(mac) && mqttReady) {
+    btn.disabled = false;
+  } else {
+    btn.disabled = true;
+  }
+}
+
+document.getElementById('macInput').addEventListener('input', validateMacInput);
+
+// ── Send WoL ──
+function sendWoL() {
+  const mac = document.getElementById('macInput').value.trim().toUpperCase();
+  if (!validateMac(mac)) {
+    showFeedback('MAC adresi eksik veya hatalı', 'err');
+    return;
+  }
+  if (!mqttReady) {
+    showFeedback('MQTT bağlantısı yok', 'err');
+    return;
+  }
+  const payload = JSON.stringify({ wol: mac });
+  client.publish(T_CMD, payload, {}, (err) => {
+    if (err) {
+      showFeedback('Gönderim hatası: ' + err.message, 'err');
+      addHistory(mac, false);
+    } else {
+      showFeedback('Magic packet gönderildi → ' + mac, 'sent');
+      addHistory(mac, true);
+    }
+  });
+}
+
+function showFeedback(msg, type) {
+  const el = document.getElementById('feedback');
+  el.textContent = msg;
+  el.className = 'feedback ' + type;
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.className = 'feedback', 4000);
+}
+
+function addHistory(mac, ok) {
+  const time = new Date().toLocaleTimeString('tr-TR');
+  history.unshift({ mac, ok, time });
+  if (history.length > 10) history = history.slice(0, 10);
+  renderHistory();
+}
+
+function renderHistory() {
+  const el = document.getElementById('histList');
+  if (!history.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--sub);text-align:center;padding:8px 0">Henüz işlem yok</div>';
+    return;
+  }
+  el.innerHTML = history.map(h => `
+    <div class="hist-item">
+      <div class="hist-dot ${h.ok ? 'ok' : 'err'}"></div>
+      <span style="font-family:monospace;font-size:11px;font-weight:600">${h.mac}</span>
+      <span style="font-size:11px;color:${h.ok ? '#2e7d32' : '#c62828'}">${h.ok ? 'Gönderildi' : 'Hata'}</span>
+      <span class="hist-time">${h.time}</span>
+    </div>
+  `).join('');
+}
+
+// ── MQTT ──
+const client = mqtt.connect(BROKER, {
+  clientId: 'wol_' + Math.random().toString(36).slice(2, 8),
+  clean: true, reconnectPeriod: 5000, connectTimeout: 10000
+});
+
+client.on('connect', () => {
+  mqttReady = true;
+  setConn('ok', 'Bağlı');
+  client.subscribe(T_LOG);
+  client.subscribe(T_ST);
+  validateMacInput();
+});
+
+client.on('close', () => {
+  mqttReady = false;
+  setConn('err', 'Bağlantı yok');
+  document.getElementById('wolBtn').disabled = true;
+});
+
+client.on('reconnect', () => {
+  mqttReady = false;
+  setConn('', 'Bağlanıyor');
+  document.getElementById('wolBtn').disabled = true;
+});
+
+client.on('message', (topic, payload) => {
+  const str = payload.toString();
+  if (topic === T_LOG && str.includes('WoL')) {
+    showFeedback('ESP32: ' + str.slice(0, 80), 'info');
+  }
+});
+
+function setConn(state, label) {
+  document.getElementById('connDot').className = 'conn-dot ' + state;
+  document.getElementById('connTxt').textContent = label;
+}
+</script>
+</body>
+</html>
