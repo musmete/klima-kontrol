@@ -576,10 +576,10 @@ body{
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div>
         <div class="ou-title">Dış Ünite · MUZ-FA35VA</div>
-        <div class="ou-sub">M-NET CN606 · BD 81 00 A2</div>
+        <div class="ou-sub">M-NET CN606 · 95 85 / 95 95 FD</div>
       </div>
       <div style="display:flex;align-items:center;gap:6px">
-        <button onclick="cn606StartSent=false;cn606SendUart()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:10px;font-weight:700;color:var(--sub);cursor:pointer">↺</button>
+        <button onclick="cn606Buf=[];cn606FrameCount=0;cn606StartSent=false;cn606SendUart()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:10px;font-weight:700;color:var(--sub);cursor:pointer">↺</button>
         <div class="cn606-conn">
           <div class="cn606-dot" id="cn606Dot"></div>
           <span id="cn606ConnTxt">Bağlanıyor</span>
@@ -982,14 +982,18 @@ function cn606ParseFrame(data, ftype) {
     cn606.sensors.ipm       = t(63);  // 0xD4=72.5°C (tentative)
 
   } else {
-    // Type X: unknown format — scan for room temp anchor (0x75=25°C)
-    // Find first 0x75 occurrence and use relative offsets from type A
-    for (let i = 0; i < data.length - 5; i++) {
-      if (data[i] === 0x75) {
-        // Type A relative: room=+0, suction=-2, dischargeH=-1, liquid=-20, hotGas=-17
-        cn606.sensors.room      = t(i);
-        const s = t(i-2); if (s !== null && s > 0 && s < 30) cn606.sensors.suction = s;
-        const d = t(i-1); if (d !== null && d > 50) cn606.sensors.dischargeH = d;
+    // Type X: unknown format — scan for plausible room temp byte (15-35°C = raw 0x61–0x89)
+    // 0x75=25°C is the typical anchor but any room-range value is valid
+    for (let i = 5; i < data.length - 5; i++) {
+      const b = data[i];
+      if (b >= 0x61 && b <= 0x89 && !CN606_FILLER.has(b)) {
+        cn606.sensors.room = t(i);
+        // Check nearby bytes for suction (cold, 5-20°C) and discharge (hot, >60°C)
+        for (let d = 1; d <= 5; d++) {
+          const prev = t(i - d);
+          if (prev !== null && prev >= 5 && prev <= 20 && cn606.sensors.suction === null) cn606.sensors.suction = prev;
+          if (prev !== null && prev > 60 && cn606.sensors.dischargeH === null) cn606.sensors.dischargeH = prev;
+        }
         break;
       }
     }
@@ -1033,9 +1037,9 @@ function cn606OnFrame(hexBytes) {
   cn606Buf.push(...bytes);
   if (cn606Buf.length > 512) cn606Buf = cn606Buf.slice(-256);
   cn606FrameCount++;
-  // Always show raw bytes received
   const rawEl = document.getElementById('cn606RawFrame');
-  if (rawEl) rawEl.innerHTML = `<span style="opacity:.5">[${cn606FrameCount}] ${bytes.length}B</span> ` + cn606HtmlDump(bytes);
+  const bufStatus = `<span style="opacity:.4;font-size:9px">buf:${cn606Buf.length}B</span>`;
+  if (rawEl) rawEl.innerHTML = `<span style="opacity:.5">[${cn606FrameCount}] ${bytes.length}B</span> ${bufStatus} ` + cn606HtmlDump(bytes);
   const found = cn606FindFrame(cn606Buf);
   if (found) {
     try {
@@ -1043,7 +1047,7 @@ function cn606OnFrame(hexBytes) {
     } catch(e) {
       if (rawEl) rawEl.innerHTML += `<br><span style="color:red">parse err: ${e.message}</span>`;
     }
-    if (rawEl) rawEl.innerHTML = `<span style="opacity:.5">[${cn606FrameCount}] ${bytes.length}B type=${found.ftype}</span> ` + cn606HtmlDump(found.data);
+    if (rawEl) rawEl.innerHTML = `<span style="opacity:.5">[${cn606FrameCount}] ${bytes.length}B <b>type=${found.ftype}</b></span> ` + cn606HtmlDump(found.data);
     renderCN606();
     cn606Buf = cn606Buf.slice(found.pos + found.data.length);
   }
@@ -1108,8 +1112,19 @@ cn606Client.on('reconnect', () => {
   cn606StartSent = false;
 });
 cn606Client.on('message', (topic, payload) => {
-  const str = payload.toString();
+  const str = payload.toString().trim();
   if (topic === T_OUT_STA) {
+    // Handle plain string status (ONLINE/OFFLINE) from ESP32
+    if (str === 'OFFLINE' || str.startsWith('OFFLINE')) {
+      document.getElementById('cn606Dot').className = 'cn606-dot err';
+      document.getElementById('cn606ConnTxt').textContent = 'ESP32 çevrim dışı';
+      cn606UartOn = false;
+      return;
+    }
+    if (str.startsWith('ONLINE')) {
+      document.getElementById('cn606ConnTxt').textContent = 'ESP32 ' + str + ' · ↺ bas';
+      document.getElementById('cn606Dot').className = 'cn606-dot ok';
+    }
     try {
       const d = JSON.parse(str);
       const wasOff = !cn606UartOn;
@@ -1122,10 +1137,8 @@ cn606Client.on('message', (topic, payload) => {
     return;
   }
   if (str.includes('FRAME[')) {
-    try {
-      const hexPart = str.split(']:')[1];
-      if (hexPart) cn606OnFrame(hexPart);
-    } catch(e){}
+    const hexPart = str.split(']:')[1];
+    if (hexPart) cn606OnFrame(hexPart);
   }
 });
 
