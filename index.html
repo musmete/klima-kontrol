@@ -702,6 +702,26 @@ body{
     </div>
   </div>
 
+  <!-- Soğutma Çevrimi Analizi -->
+  <div class="ou-sec-title">Soğutma Çevrimi · CN606 Hesaplamalı</div>
+  <div class="data-grid">
+    <div class="data-card">
+      <div class="dc-label">Süperheat (SH)</div>
+      <div class="dc-val" id="dcSH">--<sup>°</sup></div>
+      <div class="dc-sub" id="dcSHSub">Emış aşırı ısınması</div>
+    </div>
+    <div class="data-card">
+      <div class="dc-label">Alt Soğuma (SC)</div>
+      <div class="dc-val" id="dcSC">--<sup>°</sup></div>
+      <div class="dc-sub" id="dcSCSub">Sıvı hat soğuma</div>
+    </div>
+    <div class="data-card" id="dcHealthCard">
+      <div class="dc-label">Sistem Sağlığı</div>
+      <div class="dc-status" id="dcHealth" style="font-size:14px;font-weight:700">--</div>
+      <div class="dc-sub" id="dcHealthSub">Veri bekleniyor</div>
+    </div>
+  </div>
+
   <!-- CN606 Ham Frame + MQTT Log -->
   <div class="sec" style="margin:10px 12px 0">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
@@ -1164,6 +1184,101 @@ cn606Client.on('message', (topic, payload) => {
 });
 
 // ── Power estimate from compressor frequency ──
+// ── Soğutma Çevrimi Hesapları (R410A, MUZ-FA35VA) ──
+// Sensör pozisyonları kalibre edildikçe doğruluk artacak
+// Referans: ASHRAE, Mitsubishi servis notları
+
+function cn606CalcSH() {
+  const s = cn606.sensors;
+  if (s.suction === null) return null;
+
+  const mode = ac.mode || 'COOL';
+  if (mode === 'HEAT') {
+    // Isıtma modunda dış serpantin = evaporatör
+    // SH = emış sıcaklığı - dış serpantin yüzey sıcaklığı
+    if (s.condenser !== null) return +(s.suction - s.condenser).toFixed(1);
+    return null;
+  }
+  // Soğutma modunda: evaporatör iç ünitede, biz iç serpantin sıcaklığını bilmiyoruz
+  // Yaklaşım: T_evap_sat ≈ T_dış - 20°C (R410A soğutma için tipik delta)
+  const outdoorRef = (s.outdoor !== null) ? s.outdoor : ac.outTemp;
+  if (outdoorRef !== null) return +(s.suction - (outdoorRef - 20)).toFixed(1);
+  return null;
+}
+
+function cn606CalcSC() {
+  const s = cn606.sensors;
+  const mode = ac.mode || 'COOL';
+
+  if (mode === 'HEAT') {
+    // Isıtma modunda: iç serpantin = kondenser. CN606 iç serpantin sıcaklığını bilmiyor.
+    // Yaklaşım: SC ≈ sıcak gaz - sıvı hat
+    if (s.hotGas !== null && s.liquid !== null) return +(s.hotGas - s.liquid).toFixed(1);
+    return null;
+  }
+  // Soğutma modunda: SC = T_sat_cond - T_liquid
+  // T_sat_cond ≈ T_dış_ortam + 15°C (R410A soğutma, tipik kondenser delta)
+  const outdoorRef = (s.outdoor !== null) ? s.outdoor : ac.outTemp;
+  if (outdoorRef !== null && s.liquid !== null) return +(outdoorRef + 15 - s.liquid).toFixed(1);
+  return null;
+}
+
+function cn606SystemHealth() {
+  const s = cn606.sensors;
+  const freq = ac.compFreq;
+  const lastF = cn606.lastFrame;
+
+  // Veri yok
+  if (!lastF) return { label: '--', sub: 'Veri yok', color: '#9ca3af', score: 0 };
+
+  const dataAge = (Date.now() - lastF.getTime()) / 1000;
+  if (dataAge > 300) return { label: 'Eski Veri', sub: Math.round(dataAge/60)+'dk önce', color: '#9ca3af', score: 0 };
+
+  // Kompresör kapalı
+  if (!ac.operating || freq === 0 || freq === null) {
+    return { label: 'Standby', sub: 'Kompresör çalışmıyor', color: '#6b7280', score: -1 };
+  }
+
+  const problems = [], warnings = [];
+
+  // Deşarj sıcaklığı kontrolü (R410A: normal <110°C, uyarı 110-120°C, alarm >120°C)
+  if (s.dischargeH !== null) {
+    if (s.dischargeH > 120) problems.push(`Deşarj ${s.dischargeH.toFixed(0)}°C (krit.)`);
+    else if (s.dischargeH > 110) warnings.push(`Deşarj ${s.dischargeH.toFixed(0)}°C (yüksek)`);
+  }
+
+  // IPM sıcaklığı kontrolü
+  if (s.ipm !== null) {
+    if (s.ipm > 95) problems.push(`İPM ${s.ipm.toFixed(0)}°C (krit.)`);
+    else if (s.ipm > 80) warnings.push(`İPM ${s.ipm.toFixed(0)}°C (sıcak)`);
+  }
+
+  // Süperheat kontrolü (normal: 5-20°C soğutma, 4-12°C ısıtma)
+  const sh = cn606CalcSH();
+  if (sh !== null) {
+    const shMin = (ac.mode === 'HEAT') ? 3 : 5;
+    const shMax = (ac.mode === 'HEAT') ? 15 : 20;
+    if (sh < 2) problems.push(`SH ${sh.toFixed(1)}°C (sıvı taşma!)`);
+    else if (sh < shMin) warnings.push(`SH ${sh.toFixed(1)}°C (düşük)`);
+    else if (sh > shMax) warnings.push(`SH ${sh.toFixed(1)}°C (yüksek)`);
+  }
+
+  // Alt soğuma kontrolü (normal: 5-15°C)
+  const sc = cn606CalcSC();
+  if (sc !== null) {
+    if (sc < 2) warnings.push(`SC ${sc.toFixed(1)}°C (düşük)`);
+    else if (sc > 20) warnings.push(`SC ${sc.toFixed(1)}°C (yüksek)`);
+  }
+
+  if (problems.length > 0) {
+    return { label: 'SORUN', sub: problems[0], color: '#c62828', score: 1 };
+  }
+  if (warnings.length > 0) {
+    return { label: 'Uyarı', sub: warnings.join(' · '), color: '#e65100', score: 2 };
+  }
+  return { label: 'Normal', sub: `${freq}Hz · SH${sh !== null ? sh.toFixed(1) : '--'}° SC${sc !== null ? sc.toFixed(1) : '--'}°`, color: '#2e7d32', score: 3 };
+}
+
 function estimatePower(hz) {
   if (!hz || hz <= 0) return 0;
   // MUZ-FA35VA rated: 1090W @ 50Hz, max 1575W @ ~80Hz
@@ -1489,6 +1604,42 @@ function renderCN606(){
     if(dot) dot.className = secAgo < 300 ? 'cn606-dot ok' : 'cn606-dot';
     if(txt) txt.textContent = age;
   }
+
+  // SH / SC / Sistem Sağlığı
+  const sh = cn606CalcSH();
+  const sc = cn606CalcSC();
+  const health = cn606SystemHealth();
+
+  const shEl  = document.getElementById('dcSH');
+  const shSub = document.getElementById('dcSHSub');
+  if(shEl) shEl.innerHTML = sh !== null ? sh.toFixed(1)+'<sup>°</sup>' : '--<sup>°</sup>';
+  if(shSub) {
+    const shOk = sh !== null && sh >= 5 && sh <= 20;
+    const shWarn = sh !== null && (sh < 5 || sh > 20);
+    shSub.textContent = sh !== null ?
+      (shOk ? 'Normal (5-20°C)' : shWarn ? (sh < 5 ? 'Düşük → doldurma fazla?' : 'Yüksek → az doldurma?') : '') :
+      'Emış + evap referansı';
+    shSub.style.color = shWarn ? '#e65100' : '';
+  }
+
+  const scEl  = document.getElementById('dcSC');
+  const scSub = document.getElementById('dcSCSub');
+  if(scEl) scEl.innerHTML = sc !== null ? sc.toFixed(1)+'<sup>°</sup>' : '--<sup>°</sup>';
+  if(scSub) {
+    const scOk = sc !== null && sc >= 5 && sc <= 15;
+    const scWarn = sc !== null && (sc < 5 || sc > 15);
+    scSub.textContent = sc !== null ?
+      (scOk ? 'Normal (5-15°C)' : sc < 5 ? 'Düşük → az doldurma?' : 'Yüksek → fazla doldurma?') :
+      'Kondenser - sıvı hat';
+    scSub.style.color = scWarn ? '#e65100' : '';
+  }
+
+  const hEl  = document.getElementById('dcHealth');
+  const hSub = document.getElementById('dcHealthSub');
+  const hCard = document.getElementById('dcHealthCard');
+  if(hEl) { hEl.textContent = health.label; hEl.style.color = health.color; }
+  if(hSub) hSub.textContent = health.sub;
+  if(hCard) hCard.style.borderLeft = health.score > 0 ? `3px solid ${health.color}` : '';
 
   // Last frame time
   const timeEl = document.getElementById('cn606LastTime');
