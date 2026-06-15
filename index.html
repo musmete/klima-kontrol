@@ -227,8 +227,9 @@ body{
 /* ══ CN606 Section ══ */
 .cn606-conn{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.05);border-radius:20px;padding:4px 10px}
 .cn606-dot{width:6px;height:6px;border-radius:50%;background:#9ca3af;transition:.4s;flex-shrink:0}
-.cn606-dot.ok{background:#4ade80;box-shadow:0 0 7px #4ade8099}
-.cn606-dot.err{background:#f87171}
+.cn606-dot.ok  {background:#4ade80;box-shadow:0 0 7px #4ade8099}
+.cn606-dot.warn{background:#fbbf24;box-shadow:0 0 6px #fbbf2499}
+.cn606-dot.err {background:#f87171}
 .cn606-conn span{font-size:10px;font-weight:600;color:var(--sub);letter-spacing:.3px}
 .sensor-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 12px 4px}
 .sensor-card{background:#fff;border-radius:14px;padding:11px 10px 9px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid var(--border);border-top:3px solid var(--sc-color,#e5e7eb)}
@@ -1022,6 +1023,35 @@ function cn606ParseFrame(data, ftype) {
   cn606.lastFrame = new Date();
   cn606.lastFtype = ftype;
   cn606.connected = true;
+  cn606SaveLocal();
+}
+
+// ── localStorage kalıcı veri ──
+const CN606_STORAGE_KEY = 'cn606_last_v2';
+function cn606SaveLocal() {
+  try {
+    localStorage.setItem(CN606_STORAGE_KEY, JSON.stringify({
+      sensors: cn606.sensors,
+      ftype: cn606.lastFtype,
+      ts: Date.now()
+    }));
+  } catch(e) {}
+}
+function cn606LoadLocal() {
+  try {
+    const raw = localStorage.getItem(CN606_STORAGE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (!d || !d.sensors) return;
+    // Maksimum 24 saat
+    if (Date.now() - d.ts > 86400000) return;
+    Object.keys(d.sensors).forEach(k => {
+      if (d.sensors[k] !== null) cn606.sensors[k] = d.sensors[k];
+    });
+    cn606.lastFtype = d.ftype || '?';
+    cn606.lastFrame = new Date(d.ts);
+    cn606.connected = true;
+  } catch(e) {}
 }
 
 function cn606HtmlDump(data) {
@@ -1619,13 +1649,12 @@ function renderCN606(){
   if(cn606.connected && cn606.lastFrame) {
     const secAgo = Math.round((Date.now() - cn606.lastFrame.getTime()) / 1000);
     const age = secAgo < 60 ? `${secAgo}s önce` : secAgo < 3600 ? `${Math.round(secAgo/60)}dk önce` : `${Math.round(secAgo/3600)}sa önce`;
-    if(dot) dot.className = secAgo < 300 ? 'cn606-dot ok' : 'cn606-dot';
+    // Verilerin yaşına göre renk: <5dk yeşil, <30dk sarı, daha eski gri
+    if(dot) dot.className = secAgo < 300 ? 'cn606-dot ok' : secAgo < 1800 ? 'cn606-dot warn' : 'cn606-dot';
     if(txt) {
-      if (!ac.operating && ac.power === false) {
-        txt.textContent = 'AC kapalı · standby';
-      } else {
-        txt.textContent = `Son: ${age}`;
-      }
+      const isStandby = !ac.operating && ac.power === false;
+      const label = isStandby ? 'Standby' : (secAgo < 300 ? 'Canlı' : 'Eski veri');
+      txt.textContent = `${label} · ${age}`;
     }
   }
 
@@ -1667,8 +1696,12 @@ function renderCN606(){
 
   // Last frame time
   const timeEl = document.getElementById('cn606LastTime');
-  if(timeEl && cn606.lastFrame)
-    timeEl.textContent = 'Son frame: ' + cn606.lastFrame.toLocaleTimeString('tr-TR');
+  if(timeEl && cn606.lastFrame) {
+    const secAgo = Math.round((Date.now() - cn606.lastFrame.getTime()) / 1000);
+    const cached = secAgo > 60;
+    timeEl.textContent = (cached ? 'Önbellek · ' : 'Son frame · ') + cn606.lastFrame.toLocaleTimeString('tr-TR');
+    timeEl.style.color = cached ? '#f59e0b' : '';
+  }
 }
 function renderSystem(){
   if(ac.uptime!=null){
@@ -1817,6 +1850,7 @@ setInterval(() => {
 }, 5000);
 
 // ── Init ──
+cn606LoadLocal(); // localStorage'dan son bilinen sensör değerlerini yükle
 renderAll();
 renderSchedules();
 updateArc();
