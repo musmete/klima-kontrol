@@ -948,18 +948,6 @@ function cn606FindFrame(buf) {
       return { pos: i, data: buf.slice(i+5, i+5+len), ftype: 'BD' };
     }
   }
-  // Type X: kalite kontrollü — hem HOT (>60°C) hem COLD (5-20°C) gerekli
-  // Sadece gürültü içeren frame'ler (FE/00/FF) reddedilir
-  if (buf.length >= 40) {
-    let hasHot = false, hasCold = false;
-    for (let i = 3; i < buf.length - 3; i++) {
-      if (CN606_FILLER.has(buf[i])) continue;
-      const v = (buf[i] - 67) / 2;
-      if (v > 60 && v <= 110) hasHot = true;
-      if (v >= 5 && v <= 20)  hasCold = true;
-      if (hasHot && hasCold) return { pos: 0, data: buf.slice(0), ftype: 'X' };
-    }
-  }
   return null;
 }
 
@@ -1007,28 +995,6 @@ function cn606ParseFrame(data, ftype) {
       const v = t(pos); if (v !== null && v >= 5 && v <= 45) { cn606Set('outdoor', v); break; }
     }
 
-  } else {
-    // Type X: format bilinmiyor — sıcaklık aralığına göre sınıflandır
-    // HOT >60°C: deşarj, IPM
-    // COLD 5–20°C: emış
-    // MID 20–50°C: dış ortam, serpantin
-    let bestHot = null, bestCold = null, bestMid = null;
-    let bestHotV = -Infinity, bestColdV = Infinity, bestMidDist = Infinity;
-    const midTarget = 30; // dış ortam için hedef merkez
-
-    for (let i = 3; i < data.length - 3; i++) {
-      const v = t(i);
-      if (v === null) continue;
-      if (v > 60 && v > bestHotV)  { bestHot = v; bestHotV = v; }
-      if (v >= 5 && v <= 20 && v < bestColdV) { bestCold = v; bestColdV = v; }
-      if (v > 20 && v <= 38) { // dış ortam 20-38°C (kondenser 40+°C ayrı kategori)
-        const d = Math.abs(v - midTarget);
-        if (d < bestMidDist) { bestMid = v; bestMidDist = d; }
-      }
-    }
-    cn606Set('dischargeH', bestHot);
-    cn606Set('suction',    bestCold);
-    cn606Set('outdoor',    bestMid);
   }
 
   cn606.rawBurst = data;
