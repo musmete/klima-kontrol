@@ -880,14 +880,16 @@ let ac = {
 // Sıcaklık formülü: (raw - 67) / 2 → 0.5°C çözünürlük
 // Filler baytlar (atla): D5, F5, 55, 00, FF, 95, 85
 // Type B (95 95 XX): XAML'dan doğrulanan byte pozisyonları
+//   Header: 95 95 + byte[2]=DiscTemp (15-110°C geçerli aralık)
+//   NOT: Eski kod 0xFD (93°C) şartı arıyordu → normal çalışmada 30-60°C olur → KALDIRILDI
 //   Formula: byte = (register_decimal - 1) * 5 + 2
-//   Reg 0x01 → byte  2 = DiscTemp       ← KALİBRE ✅
+//   Reg 0x01 → byte  2 = DiscTemp       ← KALİBRE ✅ (93°C yeni açılışta, ~50°C normal)
 //   Reg 0x02 → byte  7 = TgtDiscTemp
 //   Reg 0x03 → byte 12 = PrognoDiscTemp
 //   Reg 0x07 → byte 32 = DefTemp
 //   Reg 0x08 → byte 37 = FinTemp
 //   Reg 0x09 → byte 42 = PCboardTemp
-//   Reg 0x0A → byte 47 = AmbientTemp    ← KALİBRE ✅
+//   Reg 0x0A → byte 47 = AmbientTemp    ← KALİBRE ✅ (40.5°C sıcak günde)
 //   Reg 0x0D → byte 62 = OutHEXtemp
 //   Reg 0x0E → byte 67 = EvaTemp
 // Kaynak: G50XmlCommunicationManager.dll → Rc_data/Circuit_diagram/MUZ-*.xaml
@@ -926,16 +928,23 @@ function cn606DecodeTemp(raw) {
 }
 
 function cn606FindFrame(buf) {
-  // Type A: 95 85 (60-byte burst, calibrated positions)
+  // Type B ÖNCE ara: 95 95 + geçerli DiscTemp (15-110°C)
+  // 0xFD (93°C) zorunluluğu KALDIRILDI — normal çalışmada 30-60°C olur
+  for (let i = 0; i < buf.length - 40; i++) {
+    if (buf[i] === 0x95 && buf[i+1] === 0x95) {
+      const b2 = buf[i+2];
+      if (!CN606_FILLER.has(b2)) {
+        const disc = (b2 - 67) / 2;
+        if (disc >= 15 && disc <= 110) {
+          return { pos: i, data: buf.slice(i, i + 69), ftype: 'B' };
+        }
+      }
+    }
+  }
+  // Type A: 95 85 (60-byte burst)
   for (let i = 0; i < buf.length - 40; i++) {
     if (buf[i] === 0x95 && buf[i+1] === 0x85) {
       return { pos: i, data: buf.slice(i, i + 60), ftype: 'A' };
-    }
-  }
-  // Type B: 95 95 FD (69-byte burst, different positions)
-  for (let i = 0; i < buf.length - 40; i++) {
-    if (buf[i] === 0x95 && buf[i+1] === 0x95 && buf[i+2] === 0xFD) {
-      return { pos: i, data: buf.slice(i, i + 69), ftype: 'B' };
     }
   }
   // Type BD: BD 81 00 A2 (legacy VRF format)
