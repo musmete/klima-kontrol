@@ -984,8 +984,12 @@ function cn606ParseFrame(data, ftype) {
 
   } else if (ftype === 'B') {
     // 95 95 XX frame — XAML doğrulamalı pozisyonlar (Rc_data/Circuit_diagram/MUZ-*.xaml)
-    cn606Set('dischargeH', t(2));   // reg 0x01 ← KALİBRE ✅
-    cn606Set('head',       t(7));   // reg 0x02 TgtDiscTemp
+    // False positive filtresi: DiscTemp ve TgtDiscTemp birbirinden max 25°C uzakta olmalı
+    const disc = t(2);   // reg 0x01 ← KALİBRE ✅
+    const tgt  = t(7);   // reg 0x02 TgtDiscTemp
+    if (disc === null || tgt === null || Math.abs(disc - tgt) > 25) return; // false positive
+    cn606Set('dischargeH', disc);
+    cn606Set('head',       tgt);
     // byte 12 = PrognoDiscTemp (UI kartı yok)
     cn606Set('condenser',  t(32));  // reg 0x07 DefTemp
     cn606Set('hotGas',     t(37));  // reg 0x08 FinTemp
