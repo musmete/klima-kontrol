@@ -940,14 +940,15 @@ function cn606DecodeSensor(raw) {
 }
 
 function cn606FindFrame(buf) {
-  // Type B ÖNCE ara: 95 95 + geçerli DiscTemp (15-110°C)
-  // 0xFD (93°C) zorunluluğu KALDIRILDI — normal çalışmada 30-60°C olur
+  // Type B ÖNCE ara: 95 95 + geçerli DiscTemp (40-110°C)
+  // byte[2]=0x95(41°C) veya 0x85(33°C) FILLER_HEADER'da → '95 95 95' false positive'i engeller
+  // Minimum 40°C: 15°C alt sınır çok düşük false positive üretiyordu
   for (let i = 0; i < buf.length - 40; i++) {
     if (buf[i] === 0x95 && buf[i+1] === 0x95) {
       const b2 = buf[i+2];
-      if (!CN606_FILLER.has(b2)) {
+      if (!CN606_FILLER_HEADER.has(b2)) {
         const disc = (b2 - 67) / 2;
-        if (disc >= 15 && disc <= 110) {
+        if (disc >= 40 && disc <= 110) {
           return { pos: i, data: buf.slice(i, i + 69), ftype: 'B' };
         }
       }
@@ -1002,17 +1003,18 @@ function cn606ParseFrame(data, ftype) {
     const disc = ts(2);   // reg 0x01 DiscTemp        ← KALİBRE ✅
     const tgt  = ts(7);   // reg 0x02 TgtDiscTemp      ← 0x95(41°C) artık geçerli!
     const prog = ts(12);  // reg 0x03 PrognoDiscTemp   (ek doğrulama)
-    if (disc === null) return;
-    // tgt null ise (gerçekten boş register) Filtre 2'yi atla; tgt varsa max 25°C fark
-    if (tgt !== null && Math.abs(disc - tgt) > 25) return;
-    // PrognoDisc Disc'ten 35°C'den fazla farklıysa false positive
+    // Filtre 1+2: disc VE tgt her ikisi de non-null olmalı, max 25°C fark
+    // tgt null ise frame'i reddet — genuine frame'de TgtDiscTemp her zaman dolu olur
+    if (disc === null || tgt === null || Math.abs(disc - tgt) > 25) return;
+    // Filtre 3: PrognoDisc Disc'ten 35°C'den fazla farklıysa false positive
     if (prog !== null && Math.abs(disc - prog) > 35) return;
     cn606Set('dischargeH', disc);
     cn606Set('head',       tgt);
     // byte 12 = PrognoDiscTemp (UI kartı yok)
     cn606Set('condenser',  ts(32));  // reg 0x07 DefTemp
     cn606Set('hotGas',     ts(37));  // reg 0x08 FinTemp
-    cn606Set('ipm',        ts(42));  // reg 0x09 PCboardTemp
+    // PCboardTemp: fiziksel aralık 10-100°C (-23°C gibi impossible değerleri eler)
+    const pcb = ts(42); if (pcb !== null && pcb >= 10 && pcb <= 100) cn606Set('ipm', pcb);
     // Ambient: fiziksel aralık filtresi (-10°C..55°C) — 84.5°C gibi false positive değerleri eler
     const amb = ts(47); if (amb !== null && amb >= -10 && amb <= 55) cn606Set('outdoor', amb);
     // OutHEX: max 75°C (kondenser üst sınır)
