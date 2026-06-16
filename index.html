@@ -984,10 +984,13 @@ function cn606ParseFrame(data, ftype) {
 
   } else if (ftype === 'B') {
     // 95 95 XX frame — XAML doğrulamalı pozisyonlar (Rc_data/Circuit_diagram/MUZ-*.xaml)
-    // False positive filtresi: DiscTemp ve TgtDiscTemp birbirinden max 25°C uzakta olmalı
-    const disc = t(2);   // reg 0x01 ← KALİBRE ✅
+    // False positive filtresi: üç sensörün tutarlılığı kontrol edilir
+    const disc = t(2);   // reg 0x01 DiscTemp     ← KALİBRE ✅
     const tgt  = t(7);   // reg 0x02 TgtDiscTemp
-    if (disc === null || tgt === null || Math.abs(disc - tgt) > 25) return; // false positive
+    const prog = t(12);  // reg 0x03 PrognoDiscTemp (ek doğrulama)
+    if (disc === null || tgt === null || Math.abs(disc - tgt) > 25) return;
+    // PrognoDisc Disc'ten 35°C'den fazla farklıysa false positive (stream içi 95 95)
+    if (prog !== null && Math.abs(disc - prog) > 35) return;
     cn606Set('dischargeH', disc);
     cn606Set('head',       tgt);
     // byte 12 = PrognoDiscTemp (UI kartı yok)
