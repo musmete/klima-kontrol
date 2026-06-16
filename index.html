@@ -916,11 +916,23 @@ let cn606 = {
 let cn606Buf = [];
 
 // ── CN606 Frame Parser ──
-// M-NET protokol byte'ları: adres ve kontrol baytları sıcaklık gibi decode edilir ama gerçek sensör DEĞİL
-// 0x95 → 41°C (dış ünite adresi), 0x85 → 33°C (iç ünite adresi) → bunları atla
-const CN606_FILLER = new Set([0xD5, 0xF5, 0x55, 0x00, 0xFF, 0x95, 0x85]);
+// FILLER: M-NET protokol null/placeholder baytları (sensör verisi değil)
+// 0x95 / 0x85 FILLER'da DEĞİL — Türkiye yazında 41°C / 33°C geçerli dış hava sıcaklığı
+// ve TgtDiscTemp olarak da görünebilir. Header detection (95 95 / 95 85) ayrı mantıkla yapılır.
+const CN606_FILLER = new Set([0xD5, 0xF5, 0x55, 0x00, 0xFF]);
+
+// Header/hex dump için (0x95/0x85 hariç, görsel ayrım için)
+const CN606_FILLER_HEADER = new Set([0xD5, 0xF5, 0x55, 0x00, 0xFF, 0x95, 0x85]);
 
 function cn606DecodeTemp(raw) {
+  if (CN606_FILLER_HEADER.has(raw)) return null;
+  const t = (raw - CN606_OFFSET) / 2;
+  if (t < -25 || t > 110) return null;
+  return t;
+}
+
+// Sensör data pozisyonları için: 0x85 (33°C) ve 0x95 (41°C) geçerli sıcaklıklar
+function cn606DecodeSensor(raw) {
   if (CN606_FILLER.has(raw)) return null;
   const t = (raw - CN606_OFFSET) / 2;
   if (t < -25 || t > 110) return null;
@@ -966,40 +978,47 @@ const CN606_FAN_LABELS = ['Kapalı','Düşük','Orta-D','Orta','Yüksek','Maks']
 function cn606Set(key, val) { if (val !== null) cn606.sensors[key] = val; }
 
 function cn606ParseFrame(data, ftype) {
-  const t = (pos) => pos < data.length ? cn606DecodeTemp(data[pos]) : null;
+  // ts(): sensör data pozisyonları için (0x85/0x95 dahil geçerli sıcaklık)
+  const ts = (pos) => pos < data.length ? cn606DecodeSensor(data[pos]) : null;
+  // t(): header/kontrol pozisyonları için (0x85/0x95 null sayılır)
+  const t  = (pos) => pos < data.length ? cn606DecodeTemp(data[pos])   : null;
 
   if (ftype === 'A') {
     // 95 85 frame — positions relative to 0x95 byte
-    cn606Set('suction',    t(21));
-    cn606Set('dischargeH', t(22));
-    cn606Set('liquid',     t(3));
-    cn606Set('hotGas',     t(6));
-    cn606Set('condenser',  t(8));
-    cn606Set('head',       t(10));
-    cn606Set('ipm',        t(45));
-    cn606Set('discharge',  t(19));
+    cn606Set('suction',    ts(21));
+    cn606Set('dischargeH', ts(22));
+    cn606Set('liquid',     ts(3));
+    cn606Set('hotGas',     ts(6));
+    cn606Set('condenser',  ts(8));
+    cn606Set('head',       ts(10));
+    cn606Set('ipm',        ts(45));
+    cn606Set('discharge',  ts(19));
     // pos 23 label belirsiz: outdoor unit kendi hava sensörü veya setpoint olabilir
-    // CN105 oda sıcaklığını bilmiyor — outdoor card'a yansıt
-    cn606Set('outdoor', t(23));
+    cn606Set('outdoor', ts(23));
 
   } else if (ftype === 'B') {
     // 95 95 XX frame — XAML doğrulamalı pozisyonlar (Rc_data/Circuit_diagram/MUZ-*.xaml)
-    // False positive filtresi: üç sensörün tutarlılığı kontrol edilir
-    const disc = t(2);   // reg 0x01 DiscTemp     ← KALİBRE ✅
-    const tgt  = t(7);   // reg 0x02 TgtDiscTemp
-    const prog = t(12);  // reg 0x03 PrognoDiscTemp (ek doğrulama)
-    if (disc === null || tgt === null || Math.abs(disc - tgt) > 25) return;
-    // PrognoDisc Disc'ten 35°C'den fazla farklıysa false positive (stream içi 95 95)
+    // False positive filtresi: disc + tgt tutarlılığı (0x85/0x95 artık geçerli sıcaklık)
+    const disc = ts(2);   // reg 0x01 DiscTemp        ← KALİBRE ✅
+    const tgt  = ts(7);   // reg 0x02 TgtDiscTemp      ← 0x95(41°C) artık geçerli!
+    const prog = ts(12);  // reg 0x03 PrognoDiscTemp   (ek doğrulama)
+    if (disc === null) return;
+    // tgt null ise (gerçekten boş register) Filtre 2'yi atla; tgt varsa max 25°C fark
+    if (tgt !== null && Math.abs(disc - tgt) > 25) return;
+    // PrognoDisc Disc'ten 35°C'den fazla farklıysa false positive
     if (prog !== null && Math.abs(disc - prog) > 35) return;
     cn606Set('dischargeH', disc);
     cn606Set('head',       tgt);
     // byte 12 = PrognoDiscTemp (UI kartı yok)
-    cn606Set('condenser',  t(32));  // reg 0x07 DefTemp
-    cn606Set('hotGas',     t(37));  // reg 0x08 FinTemp
-    cn606Set('ipm',        t(42));  // reg 0x09 PCboardTemp
-    cn606Set('outdoor',    t(47));  // reg 0x0A ← KALİBRE ✅
-    cn606Set('liquid',     t(62));  // reg 0x0D OutHEXtemp
-    cn606Set('suction',    t(67));  // reg 0x0E EvaTemp
+    cn606Set('condenser',  ts(32));  // reg 0x07 DefTemp
+    cn606Set('hotGas',     ts(37));  // reg 0x08 FinTemp
+    cn606Set('ipm',        ts(42));  // reg 0x09 PCboardTemp
+    // Ambient: fiziksel aralık filtresi (-10°C..55°C) — 84.5°C gibi false positive değerleri eler
+    const amb = ts(47); if (amb !== null && amb >= -10 && amb <= 55) cn606Set('outdoor', amb);
+    // OutHEX: max 75°C (kondenser üst sınır)
+    const hex = ts(62); if (hex !== null && hex >= -10 && hex <= 75) cn606Set('liquid', hex);
+    // EvaTemp: max 80°C
+    const eva = ts(67); if (eva !== null && eva >= -20 && eva <= 80) cn606Set('suction', eva);
 
   } else if (ftype === 'BD') {
     cn606Set('suction',   t(29));
@@ -1058,7 +1077,7 @@ function cn606HtmlDump(data) {
     const b = data[i];
     const hex = b.toString(16).padStart(2,'0').toUpperCase();
     const t = cn606DecodeTemp(b);
-    if (CN606_FILLER.has(b)) {
+    if (CN606_FILLER_HEADER.has(b)) {
       parts.push(`<span style="opacity:.3">${hex}</span>`);
     } else if ((b===0x95&&i<40) || (b===0x85&&i<40)) {
       parts.push(`<span class="bd-mark">${hex}</span>`);
