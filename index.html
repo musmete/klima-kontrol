@@ -631,14 +631,14 @@ body{
       <div class="sc-sub" id="scDischargeSub">Komp. çıkış</div>
     </div>
     <div class="sensor-card" style="--sc-color:#388e3c">
-      <div class="sc-lbl">Oda Sıcaklığı</div>
+      <div class="sc-lbl">Fin Sıcaklığı</div>
       <div class="sc-val" id="scHotGas">--<sup>°</sup></div>
-      <div class="sc-sub" id="scHotGasSub">RoomTemp · M-NET</div>
+      <div class="sc-sub" id="scHotGasSub">FinTemp · M-NET</div>
     </div>
     <div class="sensor-card" style="--sc-color:#e65100">
-      <div class="sc-lbl">Dış Serpantin</div>
+      <div class="sc-lbl">Defrost Sensörü</div>
       <div class="sc-val sc-warm" id="scCondenser">--<sup>°</sup></div>
-      <div class="sc-sub" id="scCondenserSub">Kondenser bobini</div>
+      <div class="sc-sub" id="scCondenserSub">DefTemp · M-NET</div>
     </div>
     <div class="sensor-card" style="--sc-color:#f57c00">
       <div class="sc-lbl">Dış HEX</div>
@@ -646,9 +646,9 @@ body{
       <div class="sc-sub" id="scLiquidSub">OutHEXtemp · M-NET</div>
     </div>
     <div class="sensor-card" style="--sc-color:#d84315">
-      <div class="sc-lbl">Komp. Kafası</div>
+      <div class="sc-lbl">Hedef Deşarj</div>
       <div class="sc-val sc-hot" id="scHead">--<sup>°</sup></div>
-      <div class="sc-sub" id="scHeadSub">Deşarj bölgesi</div>
+      <div class="sc-sub" id="scHeadSub">TgtDiscTemp · M-NET</div>
     </div>
     <div class="sensor-card" style="--sc-color:#6a1b9a">
       <div class="sc-lbl">İPM Sıcaklığı</div>
@@ -877,21 +877,21 @@ let ac = {
 };
 
 // ── CN606 M-NET State ──
-// Temp formula: (raw - 67) / 2 → 0.5°C resolution
-// Filler bytes (skip): D5, F5, 55, 00, FF
-// Type A (95 85): byte positions relative to 0x95 start
-// Type B (95 95 FD): different positions, outdoor at 47
+// Sıcaklık formülü: (raw - 67) / 2 → 0.5°C çözünürlük
+// Filler baytlar (atla): D5, F5, 55, 00, FF, 95, 85
+// Type B (95 95 XX): XAML'dan doğrulanan byte pozisyonları
+//   Formula: byte = (register_decimal - 1) * 5 + 2
+//   Reg 0x01 → byte  2 = DiscTemp       ← KALİBRE ✅
+//   Reg 0x02 → byte  7 = TgtDiscTemp
+//   Reg 0x03 → byte 12 = PrognoDiscTemp
+//   Reg 0x07 → byte 32 = DefTemp
+//   Reg 0x08 → byte 37 = FinTemp
+//   Reg 0x09 → byte 42 = PCboardTemp
+//   Reg 0x0A → byte 47 = AmbientTemp    ← KALİBRE ✅
+//   Reg 0x0D → byte 62 = OutHEXtemp
+//   Reg 0x0E → byte 67 = EvaTemp
+// Kaynak: G50XmlCommunicationManager.dll → Rc_data/Circuit_diagram/MUZ-*.xaml
 const CN606_OFFSET = 67;
-const CN606_MAP = {
-  liquid:    3,
-  hotGas:    6,
-  condenser: 8,
-  head:      10,
-  discharge: 19,
-  suction:   21,
-  dischargeH:22,
-  ipm:       45,
-};
 
 let cn606 = {
   connected: false,
@@ -974,14 +974,16 @@ function cn606ParseFrame(data, ftype) {
     cn606Set('outdoor', t(23));
 
   } else if (ftype === 'B') {
-    // 95 95 FD frame
-    cn606Set('suction',    t(26));
-    cn606Set('outdoor',    t(47));
-    cn606Set('dischargeH', t(2));
-    cn606Set('hotGas',     t(21));
-    cn606Set('condenser',  t(0));
-    cn606Set('liquid',     t(3));
-    cn606Set('ipm',        t(63));
+    // 95 95 XX frame — XAML doğrulamalı pozisyonlar (Rc_data/Circuit_diagram/MUZ-*.xaml)
+    cn606Set('dischargeH', t(2));   // reg 0x01 ← KALİBRE ✅
+    cn606Set('head',       t(7));   // reg 0x02 TgtDiscTemp
+    // byte 12 = PrognoDiscTemp (UI kartı yok)
+    cn606Set('condenser',  t(32));  // reg 0x07 DefTemp
+    cn606Set('hotGas',     t(37));  // reg 0x08 FinTemp
+    cn606Set('ipm',        t(42));  // reg 0x09 PCboardTemp
+    cn606Set('outdoor',    t(47));  // reg 0x0A ← KALİBRE ✅
+    cn606Set('liquid',     t(62));  // reg 0x0D OutHEXtemp
+    cn606Set('suction',    t(67));  // reg 0x0E EvaTemp
 
   } else if (ftype === 'BD') {
     cn606Set('suction',   t(29));
@@ -1574,12 +1576,13 @@ function renderCN606(){
 
   // Sub-labels göster (hangi frame tipinden geldi)
   if (cn606.lastFtype) {
-    setSub('scSuctionSub',  `EvaTemp · CN606 [${cn606.lastFtype}]`);
-    setSub('scDischargeSub',`DiscTemp · CN606 [${cn606.lastFtype}]`);
-    setSub('scHotGasSub',   `RoomTemp · CN606 [${cn606.lastFtype}]`);
-    setSub('scLiquidSub',   `OutHEXtemp · CN606 [${cn606.lastFtype}]`);
-    setSub('scCondenserSub',`CoilTemp · CN606 [${cn606.lastFtype}]`);
-    setSub('scIPMSub',      `PCboardTemp · CN606 [${cn606.lastFtype}]`);
+    setSub('scSuctionSub',  `EvaTemp · reg 0x0E · CN606 [${cn606.lastFtype}]`);
+    setSub('scDischargeSub',`DiscTemp · reg 0x01 · CN606 [${cn606.lastFtype}]`);
+    setSub('scHotGasSub',   `FinTemp · reg 0x08 · CN606 [${cn606.lastFtype}]`);
+    setSub('scLiquidSub',   `OutHEXtemp · reg 0x0D · CN606 [${cn606.lastFtype}]`);
+    setSub('scCondenserSub',`DefTemp · reg 0x07 · CN606 [${cn606.lastFtype}]`);
+    setSub('scHeadSub',     `TgtDiscTemp · reg 0x02 · CN606 [${cn606.lastFtype}]`);
+    setSub('scIPMSub',      `PCboardTemp · reg 0x09 · CN606 [${cn606.lastFtype}]`);
   }
 
   // Outdoor fan speed
