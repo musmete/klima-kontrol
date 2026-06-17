@@ -1210,14 +1210,16 @@ cn606Client.on('message', (topic, payload) => {
     try {
       const d = JSON.parse(str);
       const age = d.age ?? null; // firmware uptime bazlı saniye (tahmini)
-      if (d.disc !== undefined) cn606Set('dischargeH', parseFloat(d.disc));
-      if (d.tgt  !== undefined) cn606Set('head',       parseFloat(d.tgt));
-      if (d.def  !== undefined) cn606Set('condenser',  parseFloat(d.def));
-      if (d.fin  !== undefined) cn606Set('hotGas',     parseFloat(d.fin));
-      if (d.pcb  !== undefined) cn606Set('ipm',        parseFloat(d.pcb));
-      if (d.amb  !== undefined) cn606Set('outdoor',    parseFloat(d.amb));
+      const fv = (v, min, max) => { const n=parseFloat(v); return (!isNaN(n)&&n>=min&&n<=max)?n:null; };
+      cn606Set('dischargeH', fv(d.disc, 40, 120));
+      cn606Set('head',       fv(d.tgt,  20, 120));
+      cn606Set('condenser',  fv(d.def,  -5,  80));
+      cn606Set('hotGas',     fv(d.fin,  -5,  80));
+      cn606Set('ipm',        fv(d.pcb,  10, 100));
+      cn606Set('outdoor',    fv(d.amb,   5,  55));  // FA35VA Türkiye: 5°C min
       renderCN606();
-      const ageStr = age !== null ? ` · ${age}s önce` : '';
+      const ts = d.ts ?? null;
+      const ageStr = ts !== null ? ` · ${Math.round((Date.now()/1000)-ts)}s önce` : '';
       document.getElementById('cn606ConnTxt').textContent = 'Sensörler yüklendi' + ageStr;
     } catch(e) {}
     return;
