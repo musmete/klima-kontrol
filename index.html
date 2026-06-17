@@ -640,10 +640,10 @@ body{
       <div class="sc-val sc-warm" id="scCondenser">--<sup>°</sup></div>
       <div class="sc-sub" id="scCondenserSub">DefTemp · M-NET</div>
     </div>
-    <div class="sensor-card" style="--sc-color:#f57c00">
+    <div class="sensor-card" style="--sc-color:#f57c00;display:none">
       <div class="sc-lbl">Sıvı Hattı</div>
       <div class="sc-val sc-warm" id="scLiquid">--<sup>°</sup></div>
-      <div class="sc-sub" id="scLiquidSub">OutHEXtemp · yalnız 50-class+</div>
+      <div class="sc-sub" id="scLiquidSub">FA35VA'da yok</div>
     </div>
     <div class="sensor-card" style="--sc-color:#d84315">
       <div class="sc-lbl">Hedef Deşarj</div>
@@ -987,17 +987,8 @@ function cn606ParseFrame(data, ftype) {
   const t  = (pos) => pos < data.length ? cn606DecodeTemp(data[pos])   : null;
 
   if (ftype === 'A') {
-    // 95 85 frame — positions relative to 0x95 byte
-    cn606Set('suction',    ts(21));
-    cn606Set('dischargeH', ts(22));
-    cn606Set('liquid',     ts(3));
-    cn606Set('hotGas',     ts(6));
-    cn606Set('condenser',  ts(8));
-    cn606Set('head',       ts(10));
-    cn606Set('ipm',        ts(45));
-    cn606Set('discharge',  ts(19));
-    // pos 23 label belirsiz: outdoor unit kendi hava sensörü veya setpoint olabilir
-    cn606Set('outdoor', ts(23));
+    // 95 85 frame — byte pozisyonları KALİBRE EDİLMEDİ, sensör yazma devre dışı
+    // Bu frame tipi sadece loglama amaçlı tutuldu; hiçbir sensöre değer atanmıyor.
 
   } else if (ftype === 'B') {
     // 95 95 XX frame — XAML doğrulamalı pozisyonlar (Rc_data/Circuit_diagram/MUZ-*.xaml)
@@ -1017,8 +1008,8 @@ function cn606ParseFrame(data, ftype) {
     cn606Set('hotGas',     ts(37));  // reg 0x08 FinTemp
     // PCboardTemp: fiziksel aralık 10-100°C (-23°C gibi impossible değerleri eler)
     const pcb = ts(42); if (pcb !== null && pcb >= 10 && pcb <= 100) cn606Set('ipm', pcb);
-    // Ambient: fiziksel aralık filtresi (-10°C..55°C) — 84.5°C gibi false positive değerleri eler
-    const amb = ts(47); if (amb !== null && amb >= -10 && amb <= 55) cn606Set('outdoor', amb);
+    // Ambient: fiziksel aralık filtresi (5°C..55°C) — Türkiye yaz koşulu, -7°C gibi saçma değerleri eler
+    const amb = ts(47); if (amb !== null && amb >= 5 && amb <= 55) cn606Set('outdoor', amb);
     // OutHEXtemp (reg 0x0D, byte[62]): FA35VA'da bu sensör MEVCUT DEĞİL
     // Sadece 50-class+ modellerde var (FB50VA vb.) — byte[62] bu cihazda saçma veri üretir
     // EvaTemp (reg 0x0E, byte[67]): dış bobin HEX sıcaklığı — 35-class dahil tüm modellerde var
@@ -1046,7 +1037,7 @@ function cn606ParseFrame(data, ftype) {
 }
 
 // ── localStorage kalıcı veri ──
-const CN606_STORAGE_KEY = 'cn606_last_v2';
+const CN606_STORAGE_KEY = 'cn606_last_v3';
 function cn606SaveLocal() {
   try {
     localStorage.setItem(CN606_STORAGE_KEY, JSON.stringify({
@@ -1871,7 +1862,7 @@ setInterval(() => {
     const txt = document.getElementById('cn606ConnTxt');
     const timeEl = document.getElementById('cn606LastTime');
     if (dot) dot.className = secAgo < 60 ? 'cn606-dot ok' : secAgo < 300 ? 'cn606-dot' : 'cn606-dot err';
-    if (txt) txt.textContent = secAgo < 60 ? `${secAgo}s önce` : `${Math.floor(secAgo/60)}d${secAgo%60}s`;
+    if (txt) txt.textContent = secAgo < 60 ? `${secAgo}s önce` : secAgo < 3600 ? `${Math.floor(secAgo/60)}dk ${secAgo%60}s önce` : `${Math.floor(secAgo/3600)}sa önce`;
     if (timeEl) timeEl.textContent = 'Son frame: ' + cn606.lastFrame.toLocaleTimeString('tr-TR') + ' · ' + secAgo + 's önce';
   }
 }, 5000);
