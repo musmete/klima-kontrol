@@ -621,9 +621,9 @@ body{
       <div class="sc-sub" id="scOutdoorSub">CN606 · belirleniyor</div>
     </div>
     <div class="sensor-card" style="--sc-color:#0288d1">
-      <div class="sc-lbl">Emış Hattı</div>
+      <div class="sc-lbl">EvaTemp (Dış HEX)</div>
       <div class="sc-val sc-cold" id="scSuction">--<sup>°</sup></div>
-      <div class="sc-sub" id="scSuctionSub">Soğutucu giriş</div>
+      <div class="sc-sub" id="scSuctionSub">Dış bobin sıcaklığı</div>
     </div>
     <div class="sensor-card" style="--sc-color:#b71c1c">
       <div class="sc-lbl">Deşarj (Yüksek)</div>
@@ -641,9 +641,9 @@ body{
       <div class="sc-sub" id="scCondenserSub">DefTemp · M-NET</div>
     </div>
     <div class="sensor-card" style="--sc-color:#f57c00">
-      <div class="sc-lbl">Dış HEX</div>
+      <div class="sc-lbl">Sıvı Hattı</div>
       <div class="sc-val sc-warm" id="scLiquid">--<sup>°</sup></div>
-      <div class="sc-sub" id="scLiquidSub">OutHEXtemp · M-NET</div>
+      <div class="sc-sub" id="scLiquidSub">OutHEXtemp · yalnız 50-class+</div>
     </div>
     <div class="sensor-card" style="--sc-color:#d84315">
       <div class="sc-lbl">Hedef Deşarj</div>
@@ -880,8 +880,6 @@ let ac = {
 // Sıcaklık formülü: (raw - 67) / 2 → 0.5°C çözünürlük
 // Filler baytlar (atla): D5, F5, 55, 00, FF, 95, 85
 // Type B (95 95 XX): XAML'dan doğrulanan byte pozisyonları
-//   Header: 95 95 + byte[2]=DiscTemp (15-110°C geçerli aralık)
-//   NOT: Eski kod 0xFD (93°C) şartı arıyordu → normal çalışmada 30-60°C olur → KALDIRILDI
 //   Formula: byte = (register_decimal - 1) * 5 + 2
 //   Reg 0x01 → byte  2 = DiscTemp       ← KALİBRE ✅ (93°C yeni açılışta, ~50°C normal)
 //   Reg 0x02 → byte  7 = TgtDiscTemp
@@ -890,9 +888,13 @@ let ac = {
 //   Reg 0x08 → byte 37 = FinTemp
 //   Reg 0x09 → byte 42 = PCboardTemp
 //   Reg 0x0A → byte 47 = AmbientTemp    ← KALİBRE ✅ (40.5°C sıcak günde)
-//   Reg 0x0D → byte 62 = OutHEXtemp
-//   Reg 0x0E → byte 67 = EvaTemp
-// Kaynak: G50XmlCommunicationManager.dll → Rc_data/Circuit_diagram/MUZ-*.xaml
+//   Reg 0x0D → byte 62 = OutHEXtemp     ← 50-class+ modellerde var (FB50VA vb.)
+//                                          FA35VA / GC35VA gibi 35-class modellerde YOK
+//                                          byte[62] bu cihazda anlamsız veri → KULLANILMIYOR
+//   Reg 0x0E → byte 67 = EvaTemp        ← Tüm VA serisi modellerde var (35-class dahil)
+//                                          Dış ünite HEX sıcaklığı (ısıtmada evaporatör görevi)
+//                                          Soğutmada: ~45-55°C (kondenser sıcak hat)
+// Kaynak: Rc_data/Circuit_diagram/MUZ-GC35VA-E1.xaml (35-class) vs MUZ-FB50VA-A1.xaml (50-class)
 const CN606_OFFSET = 67;
 
 let cn606 = {
@@ -1017,9 +1019,9 @@ function cn606ParseFrame(data, ftype) {
     const pcb = ts(42); if (pcb !== null && pcb >= 10 && pcb <= 100) cn606Set('ipm', pcb);
     // Ambient: fiziksel aralık filtresi (-10°C..55°C) — 84.5°C gibi false positive değerleri eler
     const amb = ts(47); if (amb !== null && amb >= -10 && amb <= 55) cn606Set('outdoor', amb);
-    // OutHEX: max 75°C (kondenser üst sınır)
-    const hex = ts(62); if (hex !== null && hex >= -10 && hex <= 75) cn606Set('liquid', hex);
-    // EvaTemp: max 80°C
+    // OutHEXtemp (reg 0x0D, byte[62]): FA35VA'da bu sensör MEVCUT DEĞİL
+    // Sadece 50-class+ modellerde var (FB50VA vb.) — byte[62] bu cihazda saçma veri üretir
+    // EvaTemp (reg 0x0E, byte[67]): dış bobin HEX sıcaklığı — 35-class dahil tüm modellerde var
     const eva = ts(67); if (eva !== null && eva >= -20 && eva <= 80) cn606Set('suction', eva);
 
   } else if (ftype === 'BD') {
