@@ -1141,8 +1141,9 @@ function cn606StartAutoRefresh() {
 }
 
 // ── CN606 MQTT Client ──
-const T_OUT_CMD = 'mits-out/' + MAC_OUT + '/cmd';
-const T_OUT_STA = 'mits-out/' + MAC_OUT + '/status';
+const T_OUT_CMD     = 'mits-out/' + MAC_OUT + '/cmd';
+const T_OUT_STA     = 'mits-out/' + MAC_OUT + '/status';
+const T_OUT_SENSORS = 'mits-out/' + MAC_OUT + '/sensors'; // retained → anında veri
 
 let cn606UartOn = false;
 let cn606StartSent = false;
@@ -1172,6 +1173,7 @@ const cn606Client = mqtt.connect(BROKER, {
 cn606Client.on('connect', () => {
   cn606Client.subscribe(T_OUT_LOG);
   cn606Client.subscribe(T_OUT_STA);
+  cn606Client.subscribe(T_OUT_SENSORS); // retained → bağlanır bağlanmaz son değerleri çek
   document.getElementById('cn606Dot').className = 'cn606-dot ok';
   document.getElementById('cn606ConnTxt').textContent = 'MQTT Bağlı · başlatılıyor...';
   // Sayfa açılışında otomatik UART başlat (2s bekle subscriptions oturulsun)
@@ -1209,6 +1211,26 @@ cn606Client.on('message', (topic, payload) => {
   const str = payload.toString().trim();
   const tshort = topic.split('/').pop();
   cn606AddLog(tshort, str);
+
+  // ── Retained sensör snapshot (firmware v2.0+) ─────────────────────────────
+  // Firmware her geçerli frame sonrası bu topic'e retained yazar.
+  // Bağlanır bağlanmaz geliyor → sayfada hemen görünür.
+  if (topic === T_OUT_SENSORS) {
+    try {
+      const d = JSON.parse(str);
+      const age = d.age ?? null; // firmware uptime bazlı saniye (tahmini)
+      if (d.disc !== undefined) cn606Set('dischargeH', parseFloat(d.disc));
+      if (d.tgt  !== undefined) cn606Set('head',       parseFloat(d.tgt));
+      if (d.def  !== undefined) cn606Set('condenser',  parseFloat(d.def));
+      if (d.fin  !== undefined) cn606Set('hotGas',     parseFloat(d.fin));
+      if (d.pcb  !== undefined) cn606Set('ipm',        parseFloat(d.pcb));
+      if (d.amb  !== undefined) cn606Set('outdoor',    parseFloat(d.amb));
+      renderCN606();
+      const ageStr = age !== null ? ` · ${age}s önce` : '';
+      document.getElementById('cn606ConnTxt').textContent = 'Sensörler yüklendi' + ageStr;
+    } catch(e) {}
+    return;
+  }
 
   if (topic === T_OUT_STA) {
     // Handle plain OFFLINE/ONLINE strings (Last Will etc.)
