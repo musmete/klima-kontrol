@@ -1124,10 +1124,9 @@ let cn606AutoTimer = null;
 function cn606StartAutoRefresh() {
   if (cn606AutoTimer) return;
   cn606AutoTimer = setInterval(() => {
-    cn606Buf = [];
-    // Hızlı toggle: ayarlar korunur, sadece buffer flush edilir
-    cn606Client.publish(T_OUT_CMD, JSON.stringify({uart: false}));
-    setTimeout(() => cn606Client.publish(T_OUT_CMD, JSON.stringify({uart: true})), 600);
+    cn606Buf = [];  // sadece web app tarafındaki display buffer temizle
+    // uart toggle KALDIRILDI — firmware kendi sniff buffer'ını yönetir,
+    // 15s'de bir uart:false/true göndermek ambient frame yakalamayı engelliyor
   }, 15000);
 }
 
