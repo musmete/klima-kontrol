@@ -123,7 +123,7 @@ body{
 .mode-chip.auto{background:#ede7f6;color:var(--auto)}
 
 /* ── Sub-info row (outdoor + humidity) ── */
-.sub-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+.sub-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .sub-box{
   background:#f8fafc;border-radius:12px;padding:9px 10px;
   border:1px solid var(--border);display:flex;align-items:center;gap:8px;
@@ -432,17 +432,8 @@ body{
     </div>
   </div>
 
-  <!-- Sub info: outdoor + humidity -->
+  <!-- Sub info: humidity -->
   <div class="sub-row">
-    <div class="sub-box">
-      <div class="sub-icon">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-      </div>
-      <div class="sub-text">
-        <div class="sub-val" id="outVal">--°</div>
-        <div class="sub-lbl">Dış Ortam</div>
-      </div>
-    </div>
     <div class="sub-box hum-box">
       <div class="sub-icon">
         <svg viewBox="0 0 24 24" width="16" height="18" fill="#1565c0" opacity=".6"><path d="M12 2C12 2 5 10 5 15a7 7 0 0 0 14 0C19 10 12 2 12 2z"/></svg>
@@ -569,173 +560,6 @@ body{
 </div><!-- end tabControl -->
 
 
-<!-- ══════════ TAB: DIŞ ÜNİTE ══════════ -->
-<div id="tabOutdoor" class="tab-content">
-
-  <!-- Header -->
-  <div class="ou-header">
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div class="ou-title">Dış Ünite · MUZ-FA35VA</div>
-        <div class="ou-sub">M-NET CN606 · 95 85 / 95 95 FD</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <button onclick="cn606Buf=[];cn606FrameCount=0;cn606StartSent=false;cn606SendUart()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:10px;font-weight:700;color:var(--sub);cursor:pointer">↺</button>
-        <div class="cn606-conn">
-          <div class="cn606-dot" id="cn606Dot"></div>
-          <span id="cn606ConnTxt">Bağlanıyor</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Güç Tüketimi -->
-  <div class="power-card">
-    <div class="pc-lbl">Tahmini Güç Tüketimi</div>
-    <div class="power-row-inner">
-      <div>
-        <div style="display:flex;align-items:flex-end;gap:4px">
-          <div class="pc-val" id="pcVal">--</div>
-          <div class="pc-unit">W</div>
-        </div>
-        <div class="pc-sub" id="pcSub">Kompresör frekanstan hesap</div>
-      </div>
-      <div style="flex:1">
-        <div class="power-bar-wrap">
-          <div class="power-bar" id="powerBar" style="width:0%"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between">
-          <span style="font-size:8px;color:rgba(255,255,255,.3)">0W</span>
-          <span style="font-size:8px;color:rgba(255,255,255,.3)">1575W</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- CN606 Sıcaklık Sensörleri -->
-  <div class="ou-sec-title">Sıcaklık Sensörleri · CN606 M-NET</div>
-  <div class="sensor-grid">
-    <div class="sensor-card" style="--sc-color:#4caf50">
-      <div class="sc-lbl">Dış Ortam</div>
-      <div class="sc-val" id="scOutdoor">--<sup>°</sup></div>
-      <div class="sc-sub" id="scOutdoorSub">CN606 · belirleniyor</div>
-    </div>
-    <div class="sensor-card" style="--sc-color:#0288d1">
-      <div class="sc-lbl">EvaTemp (Dış HEX)</div>
-      <div class="sc-val sc-cold" id="scSuction">--<sup>°</sup></div>
-      <div class="sc-sub" id="scSuctionSub">Dış bobin sıcaklığı</div>
-    </div>
-    <div class="sensor-card" style="--sc-color:#b71c1c">
-      <div class="sc-lbl">Deşarj (Yüksek)</div>
-      <div class="sc-val sc-hot" id="scDischarge">--<sup>°</sup></div>
-      <div class="sc-sub" id="scDischargeSub">Komp. çıkış</div>
-    </div>
-    <div class="sensor-card" style="--sc-color:#388e3c">
-      <div class="sc-lbl">Fin Sıcaklığı</div>
-      <div class="sc-val" id="scHotGas">--<sup>°</sup></div>
-      <div class="sc-sub" id="scHotGasSub">FinTemp · M-NET</div>
-    </div>
-    <div class="sensor-card" style="--sc-color:#e65100">
-      <div class="sc-lbl">Defrost Sensörü</div>
-      <div class="sc-val sc-warm" id="scCondenser">--<sup>°</sup></div>
-      <div class="sc-sub" id="scCondenserSub">DefTemp · M-NET</div>
-    </div>
-    <div class="sensor-card" style="--sc-color:#f57c00;display:none">
-      <div class="sc-lbl">Sıvı Hattı</div>
-      <div class="sc-val sc-warm" id="scLiquid">--<sup>°</sup></div>
-      <div class="sc-sub" id="scLiquidSub">FA35VA'da yok</div>
-    </div>
-    <div class="sensor-card" style="--sc-color:#d84315">
-      <div class="sc-lbl">Hedef Deşarj</div>
-      <div class="sc-val sc-hot" id="scHead">--<sup>°</sup></div>
-      <div class="sc-sub" id="scHeadSub">TgtDiscTemp · M-NET</div>
-    </div>
-    <div class="sensor-card" style="--sc-color:#6a1b9a">
-      <div class="sc-lbl">İPM Sıcaklığı</div>
-      <div class="sc-val sc-ipm" id="scIPM">--<sup>°</sup></div>
-      <div class="sc-sub" id="scIPMSub">İnvertör modül</div>
-    </div>
-    <div class="sensor-card" style="--sc-color:#00695c">
-      <div class="sc-lbl">Dış Ünite Fan</div>
-      <div class="sc-fan" id="scFanOut">--</div>
-      <div class="sc-sub" id="scFanOutSub">CN606 M-NET</div>
-    </div>
-    <div class="sensor-card" style="--sc-color:#009688">
-      <div class="sc-lbl">İç Ünite Fan</div>
-      <div class="sc-fan" id="scFanIn">--</div>
-      <div class="sc-sub" id="scFanInSub">CN105 · set değer</div>
-    </div>
-  </div>
-
-  <!-- Kompresör Durumu → CN105 -->
-  <div class="ou-sec-title">Kompresör · CN105</div>
-  <div class="data-grid">
-    <div class="data-card">
-      <div class="dc-label">Frekans</div>
-      <div class="dc-val" id="dcFreq">--<span class="dcu"> Hz</span></div>
-      <div class="dc-sub" id="dcFreqSub">Kompresör hızı</div>
-    </div>
-    <div class="data-card">
-      <div class="dc-label">Kompresör</div>
-      <div class="dc-status" id="dcComp">Beklemede</div>
-      <div class="dc-sub" id="dcCompSub">Çalışmıyor</div>
-      <span class="dc-badge off" id="dcCompBadge">Pasif</span>
-    </div>
-    <div class="data-card">
-      <div class="dc-label">İç Ünite</div>
-      <div class="dc-val" id="dcRoomTemp">--<sup>°</sup></div>
-      <div class="dc-sub">CN105 oda sensörü</div>
-    </div>
-    <div class="data-card">
-      <div class="dc-label">Nem · DHT11</div>
-      <div class="dc-val" id="dcHumidity">--<span class="dcu">%</span></div>
-      <div class="dc-sub" id="dcHumSub">GPIO14</div>
-    </div>
-    <div class="data-card">
-      <div class="dc-label">İç Fan Kademesi</div>
-      <div class="dc-val" id="dcFanIn" style="font-size:18px">--</div>
-      <div class="dc-sub" id="dcFanInSub">Ayar değeri</div>
-    </div>
-    <div class="data-card">
-      <div class="dc-label">Hissedilen</div>
-      <div class="dc-val" id="dcFeels">--<sup>°</sup></div>
-      <div class="dc-sub">Nem + sıcaklık</div>
-    </div>
-  </div>
-
-  <!-- Soğutma Çevrimi Analizi -->
-  <div class="ou-sec-title">Soğutma Çevrimi · CN606 Hesaplamalı</div>
-  <div class="data-grid">
-    <div class="data-card">
-      <div class="dc-label">Süperheat (SH)</div>
-      <div class="dc-val" id="dcSH">--<sup>°</sup></div>
-      <div class="dc-sub" id="dcSHSub">Emış aşırı ısınması</div>
-    </div>
-    <div class="data-card">
-      <div class="dc-label">Alt Soğuma (SC)</div>
-      <div class="dc-val" id="dcSC">--<sup>°</sup></div>
-      <div class="dc-sub" id="dcSCSub">Sıvı hat soğuma</div>
-    </div>
-    <div class="data-card" id="dcHealthCard">
-      <div class="dc-label">Sistem Sağlığı</div>
-      <div class="dc-status" id="dcHealth" style="font-size:14px;font-weight:700">--</div>
-      <div class="dc-sub" id="dcHealthSub">Veri bekleniyor</div>
-    </div>
-  </div>
-
-  <!-- CN606 Ham Frame + MQTT Log -->
-  <div class="sec" style="margin:10px 12px 0">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
-      <div class="sec-title">Son CN606 Frame</div>
-      <span id="cn606MqttCount" style="font-size:10px;color:var(--sub)">0 mesaj</span>
-    </div>
-    <div class="cn606-frame" id="cn606RawFrame">M-NET bus bekleniyor...</div>
-    <div class="cn606-last" id="cn606LastTime"></div>
-    <!-- Son MQTT mesajları (debug) -->
-    <div id="cn606MqttLog" style="margin-top:8px;font-family:monospace;font-size:9px;color:var(--sub);line-height:1.8;max-height:90px;overflow-y:auto;background:#f5f5f5;border-radius:6px;padding:5px 7px;display:none"></div>
-  </div>
-
-</div><!-- end tabOutdoor -->
 
 
 <!-- ══════════ TAB: PROGRAM ══════════ -->
@@ -840,16 +664,11 @@ body{
     <div class="nbar"></div>
   </button>
   <button class="nbtn" id="nb1" onclick="switchTab(1)">
-    <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8v4h8z"/><circle cx="12" cy="14" r="2.5"/></svg>
-    Dış Ünite
-    <div class="nbar"></div>
-  </button>
-  <button class="nbtn" id="nb2" onclick="switchTab(2)">
     <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8.01" y2="14"/><line x1="12" y1="14" x2="12.01" y2="14"/><line x1="16" y1="14" x2="16.01" y2="14"/></svg>
     Program
     <div class="nbar"></div>
   </button>
-  <button class="nbtn" id="nb3" onclick="switchTab(3)">
+  <button class="nbtn" id="nb2" onclick="switchTab(2)">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     Sistem
     <div class="nbar"></div>
@@ -865,8 +684,6 @@ const T_ST     = 'mits/'+MAC+'/status';
 const T_CMD    = 'mits/'+MAC+'/cmd';
 const T_OTA    = 'mits/'+MAC+'/ota';
 const T_LOG    = 'mits/'+MAC+'/log';
-const MAC_OUT  = '885721B65584';
-const T_OUT_LOG= 'mits-out/'+MAC_OUT+'/log';
 
 let ac = {
   power:false, mode:'COOL', setTemp:22,
@@ -875,488 +692,6 @@ let ac = {
   iSee:false, plasma:false, operating:false, cn105:false,
   uptime:null, rssi:null, compFreq:null, errCode:0
 };
-
-// ── CN606 M-NET State ──
-// Sıcaklık formülü: (raw - 67) / 2 → 0.5°C çözünürlük
-// Filler baytlar (atla): D5, F5, 55, 00, FF, 95, 85
-// Type B (95 95 XX): XAML'dan doğrulanan byte pozisyonları
-//   Formula: byte = (register_decimal - 1) * 5 + 2
-//   Reg 0x01 → byte  2 = DiscTemp       ← KALİBRE ✅ (93°C yeni açılışta, ~50°C normal)
-//   Reg 0x02 → byte  7 = TgtDiscTemp
-//   Reg 0x03 → byte 12 = PrognoDiscTemp
-//   Reg 0x07 → byte 32 = DefTemp
-//   Reg 0x08 → byte 37 = FinTemp
-//   Reg 0x09 → byte 42 = PCboardTemp
-//   Reg 0x0A → byte 47 = AmbientTemp    ← KALİBRE ✅ (40.5°C sıcak günde)
-//   Reg 0x0D → byte 62 = OutHEXtemp     ← 50-class+ modellerde var (FB50VA vb.)
-//                                          FA35VA / GC35VA gibi 35-class modellerde YOK
-//                                          byte[62] bu cihazda anlamsız veri → KULLANILMIYOR
-//   Reg 0x0E → byte 67 = EvaTemp        ← Tüm VA serisi modellerde var (35-class dahil)
-//                                          Dış ünite HEX sıcaklığı (ısıtmada evaporatör görevi)
-//                                          Soğutmada: ~45-55°C (kondenser sıcak hat)
-// Kaynak: Rc_data/Circuit_diagram/MUZ-GC35VA-E1.xaml (35-class) vs MUZ-FB50VA-A1.xaml (50-class)
-const CN606_OFFSET = 67;
-
-let cn606 = {
-  connected: false,
-  lastFrame: null,
-  rawBurst: null,
-  sensors: {
-    room:       null,
-    suction:    null,
-    discharge:  null,
-    dischargeH: null,
-    hotGas:     null,
-    head:       null,
-    condenser:  null,
-    liquid:     null,
-    ipm:        null,
-    outdoor:    null,
-    fanStep:    null,
-  }
-};
-let cn606Buf = [];
-
-// ── CN606 Frame Parser ──
-// FILLER: M-NET protokol null/placeholder baytları (sensör verisi değil)
-// 0x95 / 0x85 FILLER'da DEĞİL — Türkiye yazında 41°C / 33°C geçerli dış hava sıcaklığı
-// ve TgtDiscTemp olarak da görünebilir. Header detection (95 95 / 95 85) ayrı mantıkla yapılır.
-const CN606_FILLER = new Set([0xD5, 0xF5, 0x55, 0x00, 0xFF]);
-
-// Header/hex dump için (0x95/0x85 hariç, görsel ayrım için)
-const CN606_FILLER_HEADER = new Set([0xD5, 0xF5, 0x55, 0x00, 0xFF, 0x95, 0x85]);
-
-function cn606DecodeTemp(raw) {
-  if (CN606_FILLER_HEADER.has(raw)) return null;
-  const t = (raw - CN606_OFFSET) / 2;
-  if (t < -25 || t > 110) return null;
-  return t;
-}
-
-// Sensör data pozisyonları için: 0x85 (33°C) ve 0x95 (41°C) geçerli sıcaklıklar
-function cn606DecodeSensor(raw) {
-  if (CN606_FILLER.has(raw)) return null;
-  const t = (raw - CN606_OFFSET) / 2;
-  if (t < -25 || t > 110) return null;
-  return t;
-}
-
-function cn606FindFrame(buf) {
-  // Type B ÖNCE ara: 95 95 + geçerli DiscTemp (40-110°C)
-  // byte[2]=0x95(41°C) veya 0x85(33°C) FILLER_HEADER'da → '95 95 95' false positive'i engeller
-  // Minimum 40°C: 15°C alt sınır çok düşük false positive üretiyordu
-  for (let i = 0; i < buf.length - 40; i++) {
-    if (buf[i] === 0x95 && buf[i+1] === 0x95) {
-      const b2 = buf[i+2];
-      if (!CN606_FILLER_HEADER.has(b2)) {
-        const disc = (b2 - 67) / 2;
-        if (disc >= 40 && disc <= 110) {
-          return { pos: i, data: buf.slice(i, i + 69), ftype: 'B' };
-        }
-      }
-    }
-  }
-  // Type A: 95 85 (60-byte burst)
-  for (let i = 0; i < buf.length - 40; i++) {
-    if (buf[i] === 0x95 && buf[i+1] === 0x85) {
-      return { pos: i, data: buf.slice(i, i + 60), ftype: 'A' };
-    }
-  }
-  // Type BD: BD 81 00 A2 (legacy VRF format)
-  for (let i = 0; i < buf.length - 5; i++) {
-    if (buf[i]===0xBD && buf[i+1]===0x81 && buf[i+2]===0x00 && buf[i+3]===0xA2) {
-      const len = buf[i+4];
-      if (len < 20 || len > 120) continue;
-      const end = i + 5 + len + 1;
-      if (end > buf.length) continue;
-      return { pos: i, data: buf.slice(i+5, i+5+len), ftype: 'BD' };
-    }
-  }
-  return null;
-}
-
-const CN606_FAN_LABELS = ['Kapalı','Düşük','Orta-D','Orta','Yüksek','Maks'];
-
-// Only update sensor if we got a real (non-null) value — preserves last known good
-function cn606Set(key, val) { if (val !== null) cn606.sensors[key] = val; }
-
-function cn606ParseFrame(data, ftype) {
-  // ts(): sensör data pozisyonları için (0x85/0x95 dahil geçerli sıcaklık)
-  const ts = (pos) => pos < data.length ? cn606DecodeSensor(data[pos]) : null;
-  // t(): header/kontrol pozisyonları için (0x85/0x95 null sayılır)
-  const t  = (pos) => pos < data.length ? cn606DecodeTemp(data[pos])   : null;
-
-  if (ftype === 'A') {
-    // 95 85 frame — byte pozisyonları KALİBRE EDİLMEDİ, sensör yazma devre dışı
-    // Bu frame tipi sadece loglama amaçlı tutuldu; hiçbir sensöre değer atanmıyor.
-
-  } else if (ftype === 'B') {
-    // 95 95 XX frame — XAML doğrulamalı pozisyonlar (Rc_data/Circuit_diagram/MUZ-*.xaml)
-    // False positive filtresi: disc + tgt tutarlılığı (0x85/0x95 artık geçerli sıcaklık)
-    const disc = ts(2);   // reg 0x01 DiscTemp        ← KALİBRE ✅
-    const tgt  = ts(7);   // reg 0x02 TgtDiscTemp      ← 0x95(41°C) artık geçerli!
-    const prog = ts(12);  // reg 0x03 PrognoDiscTemp   (ek doğrulama)
-    // Filtre 1+2: disc VE tgt her ikisi de non-null olmalı, max 25°C fark
-    // tgt null ise frame'i reddet — genuine frame'de TgtDiscTemp her zaman dolu olur
-    if (disc === null || tgt === null || Math.abs(disc - tgt) > 25) return;
-    // Filtre 3: PrognoDisc Disc'ten 35°C'den fazla farklıysa false positive
-    if (prog !== null && Math.abs(disc - prog) > 35) return;
-    cn606Set('dischargeH', disc);
-    cn606Set('head',       tgt);
-    // byte 12 = PrognoDiscTemp (UI kartı yok)
-    cn606Set('condenser',  ts(32));  // reg 0x07 DefTemp
-    cn606Set('hotGas',     ts(37));  // reg 0x08 FinTemp
-    // PCboardTemp: fiziksel aralık 10-100°C (-23°C gibi impossible değerleri eler)
-    const pcb = ts(42); if (pcb !== null && pcb >= 10 && pcb <= 100) cn606Set('ipm', pcb);
-    // Ambient: fiziksel aralık filtresi (5°C..55°C) — Türkiye yaz koşulu, -7°C gibi saçma değerleri eler
-    const amb = ts(47); if (amb !== null && amb >= 5 && amb <= 55) cn606Set('outdoor', amb);
-    // OutHEXtemp (reg 0x0D, byte[62]): FA35VA'da bu sensör MEVCUT DEĞİL
-    // Sadece 50-class+ modellerde var (FB50VA vb.) — byte[62] bu cihazda saçma veri üretir
-    // EvaTemp (reg 0x0E, byte[67]): dış bobin HEX sıcaklığı — 35-class dahil tüm modellerde var
-    const eva = ts(67); if (eva !== null && eva >= -20 && eva <= 80) cn606Set('suction', eva);
-
-  } else if (ftype === 'BD') {
-    cn606Set('suction',   t(29));
-    cn606Set('discharge', t(3));
-    cn606Set('hotGas',    t(28));
-    cn606Set('head',      t(55));
-    cn606Set('condenser', t(19));
-    cn606Set('liquid',    t(21));
-    cn606Set('ipm',       t(63));
-    for (const pos of [70,71,72,73,74,75,76,77,78,79,80,81,82,83]) {
-      const v = t(pos); if (v !== null && v >= 5 && v <= 45) { cn606Set('outdoor', v); break; }
-    }
-
-  }
-
-  cn606.rawBurst = data;
-  cn606.lastFrame = new Date();
-  cn606.lastFtype = ftype;
-  cn606.connected = true;
-  cn606SaveLocal();
-}
-
-// ── localStorage kalıcı veri ──
-const CN606_STORAGE_KEY = 'cn606_last_v3';
-function cn606SaveLocal() {
-  try {
-    localStorage.setItem(CN606_STORAGE_KEY, JSON.stringify({
-      sensors: cn606.sensors,
-      ftype: cn606.lastFtype,
-      ts: Date.now()
-    }));
-  } catch(e) {}
-}
-function cn606LoadLocal() {
-  try {
-    const raw = localStorage.getItem(CN606_STORAGE_KEY);
-    if (!raw) return;
-    const d = JSON.parse(raw);
-    if (!d || !d.sensors) return;
-    // Maksimum 24 saat
-    if (Date.now() - d.ts > 86400000) return;
-    Object.keys(d.sensors).forEach(k => {
-      if (d.sensors[k] !== null) cn606.sensors[k] = d.sensors[k];
-    });
-    cn606.lastFtype = d.ftype || '?';
-    cn606.lastFrame = new Date(d.ts);
-    cn606.connected = true;
-  } catch(e) {}
-}
-
-function cn606HtmlDump(data) {
-  // Colorize burst hex dump (95 85 format or BD format)
-  const SENSOR_POS = new Set(Object.values(CN606_MAP));
-  let parts = [];
-  for (let i = 0; i < data.length; i++) {
-    const b = data[i];
-    const hex = b.toString(16).padStart(2,'0').toUpperCase();
-    const t = cn606DecodeTemp(b);
-    if (CN606_FILLER_HEADER.has(b)) {
-      parts.push(`<span style="opacity:.3">${hex}</span>`);
-    } else if ((b===0x95&&i<40) || (b===0x85&&i<40)) {
-      parts.push(`<span class="bd-mark">${hex}</span>`);
-    } else if (SENSOR_POS.has(i) && t !== null) {
-      const cls = t >= 60 ? 'hot-mark' : (t <= 20 ? 'cold-mark' : 'room-mark');
-      parts.push(`<span class="${cls}" title="[${i}]=${t.toFixed(1)}°C">${hex}</span>`);
-    } else if (t !== null && t >= 60) {
-      parts.push(`<span class="hot-mark" title="[${i}]=${t.toFixed(1)}°C">${hex}</span>`);
-    } else if (t !== null && t <= 20) {
-      parts.push(`<span class="cold-mark" title="[${i}]=${t.toFixed(1)}°C">${hex}</span>`);
-    } else {
-      parts.push(`<span style="opacity:.7">${hex}</span>`);
-    }
-  }
-  return parts.join(' ');
-}
-
-let cn606FrameCount = 0;
-function cn606OnFrame(hexBytes) {
-  const bytes = hexBytes.trim().split(/\s+/).map(x=>parseInt(x,16)).filter(x=>!isNaN(x));
-  if (!bytes.length) return;
-  cn606Buf.push(...bytes);
-  if (cn606Buf.length > 512) cn606Buf = cn606Buf.slice(-256);
-  cn606FrameCount++;
-  const rawEl = document.getElementById('cn606RawFrame');
-  const bufStatus = `<span style="opacity:.4;font-size:9px">buf:${cn606Buf.length}B</span>`;
-  if (rawEl) rawEl.innerHTML = `<span style="opacity:.5">[${cn606FrameCount}] ${bytes.length}B</span> ${bufStatus} ` + cn606HtmlDump(bytes);
-  const found = cn606FindFrame(cn606Buf);
-  if (found) {
-    try {
-      cn606ParseFrame(found.data, found.ftype);
-    } catch(e) {
-      if (rawEl) rawEl.innerHTML += `<br><span style="color:red">parse err: ${e.message}</span>`;
-    }
-    if (rawEl) rawEl.innerHTML = `<span style="opacity:.5">[${cn606FrameCount}] ${bytes.length}B <b>type=${found.ftype}</b></span> ` + cn606HtmlDump(found.data);
-    renderCN606();
-    cn606Buf = cn606Buf.slice(found.pos + found.data.length);
-  } else {
-    // Frame bulunamadı — buffer'ı 0x95 başlangıcına kadar ilerlet, gereksiz gürültü baytlarını at
-    const nextStart = cn606Buf.indexOf(0x95);
-    if (nextStart > 0) cn606Buf = cn606Buf.slice(nextStart);
-    else if (nextStart < 0 && cn606Buf.length > 100) cn606Buf = [];
-  }
-}
-
-// Auto-refresh: her 15s'de hızlı flush (uart:false→true, sadece 0.5s dead time)
-// Tam restart (cn606SendUart) sadece ilk bağlantıda ve ↺'de yapılır
-let cn606AutoTimer = null;
-function cn606StartAutoRefresh() {
-  if (cn606AutoTimer) return;
-  cn606AutoTimer = setInterval(() => {
-    cn606Buf = [];  // sadece web app tarafındaki display buffer temizle
-    // uart toggle KALDIRILDI — firmware kendi sniff buffer'ını yönetir,
-    // 15s'de bir uart:false/true göndermek ambient frame yakalamayı engelliyor
-  }, 15000);
-}
-
-// ── CN606 MQTT Client ──
-const T_OUT_CMD     = 'mits-out/' + MAC_OUT + '/cmd';
-const T_OUT_STA     = 'mits-out/' + MAC_OUT + '/status';
-const T_OUT_SENSORS = 'mits-out/' + MAC_OUT + '/sensors'; // retained → anında veri
-
-let cn606UartOn = false;
-let cn606StartSent = false;
-
-function cn606SendUart() {
-  const cmds = [
-    {uart: false},
-    {rx: 16}, {tx: 17},
-    {baud: 9600}, {parity: 1},
-    {invert: true}, {gap: 20},
-    {passive: true},
-    {uart: true}
-  ];
-  let delay = 0;
-  cmds.forEach(cmd => {
-    setTimeout(() => cn606Client.publish(T_OUT_CMD, JSON.stringify(cmd)), delay);
-    delay += 350;
-  });
-  cn606StartSent = true;
-  document.getElementById('cn606ConnTxt').textContent = 'UART başlatılıyor...';
-}
-
-const cn606Client = mqtt.connect(BROKER, {
-  clientId: 'cn606_' + Math.random().toString(36).slice(2,8),
-  clean: true, reconnectPeriod: 5000, connectTimeout: 10000
-});
-cn606Client.on('connect', () => {
-  cn606Client.subscribe(T_OUT_LOG);
-  cn606Client.subscribe(T_OUT_STA);
-  cn606Client.subscribe(T_OUT_SENSORS); // retained → bağlanır bağlanmaz son değerleri çek
-  document.getElementById('cn606Dot').className = 'cn606-dot ok';
-  document.getElementById('cn606ConnTxt').textContent = 'MQTT Bağlı · başlatılıyor...';
-  // Sayfa açılışında otomatik UART başlat (2s bekle subscriptions oturulsun)
-  setTimeout(() => { if (!cn606StartSent) cn606SendUart(); }, 2000);
-});
-cn606Client.on('close', () => {
-  document.getElementById('cn606Dot').className = 'cn606-dot err';
-  document.getElementById('cn606ConnTxt').textContent = 'Bağlantı yok';
-  cn606.connected = false;
-  cn606UartOn = false;
-  cn606StartSent = false;
-});
-cn606Client.on('reconnect', () => {
-  document.getElementById('cn606Dot').className = 'cn606-dot';
-  document.getElementById('cn606ConnTxt').textContent = 'Bağlanıyor';
-  cn606StartSent = false;
-});
-let cn606MqttMsgCount = 0;
-let cn606MqttLog = [];
-function cn606AddLog(type, text) {
-  cn606MqttMsgCount++;
-  const time = new Date().toLocaleTimeString('tr-TR');
-  cn606MqttLog.unshift(`${time} [${type}] ${text.slice(0,80)}`);
-  if (cn606MqttLog.length > 20) cn606MqttLog = cn606MqttLog.slice(0, 20);
-  const cntEl = document.getElementById('cn606MqttCount');
-  const logEl = document.getElementById('cn606MqttLog');
-  if (cntEl) cntEl.textContent = cn606MqttMsgCount + ' mesaj';
-  if (logEl) {
-    logEl.style.display = 'block';
-    logEl.innerHTML = cn606MqttLog.map(l => `<div>${l}</div>`).join('');
-  }
-}
-
-cn606Client.on('message', (topic, payload) => {
-  const str = payload.toString().trim();
-  const tshort = topic.split('/').pop();
-  cn606AddLog(tshort, str);
-
-  // ── Retained sensör snapshot (firmware v2.0+) ─────────────────────────────
-  // Firmware her geçerli frame sonrası bu topic'e retained yazar.
-  // Bağlanır bağlanmaz geliyor → sayfada hemen görünür.
-  if (topic === T_OUT_SENSORS) {
-    try {
-      const d = JSON.parse(str);
-      const age = d.age ?? null; // firmware uptime bazlı saniye (tahmini)
-      const fv = (v, min, max) => { const n=parseFloat(v); return (!isNaN(n)&&n>=min&&n<=max)?n:null; };
-      cn606Set('dischargeH', fv(d.disc, 40, 120));
-      cn606Set('head',       fv(d.tgt,  20, 120));
-      cn606Set('condenser',  fv(d.def,  -5,  80));
-      cn606Set('hotGas',     fv(d.fin,  -5,  80));
-      cn606Set('ipm',        fv(d.pcb,  10, 100));
-      cn606Set('outdoor',    fv(d.amb,   5,  55));  // FA35VA Türkiye: 5°C min
-      renderCN606();
-      const ts = d.ts ?? null;
-      const ageStr = ts !== null ? ` · ${Math.round((Date.now()/1000)-ts)}s önce` : '';
-      document.getElementById('cn606ConnTxt').textContent = 'Sensörler yüklendi' + ageStr;
-    } catch(e) {}
-    return;
-  }
-
-  if (topic === T_OUT_STA) {
-    // Handle plain OFFLINE/ONLINE strings (Last Will etc.)
-    if (str === 'OFFLINE' || str.startsWith('OFFLINE')) {
-      document.getElementById('cn606Dot').className = 'cn606-dot err';
-      document.getElementById('cn606ConnTxt').textContent = 'ESP32 çevrim dışı';
-      cn606UartOn = false;
-      return;
-    }
-    if (str.startsWith('ONLINE')) {
-      document.getElementById('cn606ConnTxt').textContent = 'ESP32 ' + str + ' · ↺ bas';
-      document.getElementById('cn606Dot').className = 'cn606-dot ok';
-    }
-    try {
-      const d = JSON.parse(str);
-      const wasOff = !cn606UartOn;
-      cn606UartOn = d.uart === true;
-      if (cn606UartOn) {
-        document.getElementById('cn606ConnTxt').textContent = 'UART aktif · 90s oto';
-        if (wasOff) cn606StartAutoRefresh();
-      } else if (!cn606StartSent) {
-        // UART kapalı ve henüz başlatmadık → otomatik başlat
-        setTimeout(() => { if (!cn606StartSent) cn606SendUart(); }, 500);
-      }
-    } catch(e){}
-    return;
-  }
-  // Log topic mesajları
-  if (str.includes('UART_ON')) {
-    // Firmware UART_ON bildirdi → cn606UartOn güncelle, auto-refresh başlat
-    const wasOff = !cn606UartOn;
-    cn606UartOn = true;
-    document.getElementById('cn606ConnTxt').textContent = 'UART aktif · dinleniyor';
-    if (wasOff) cn606StartAutoRefresh();
-  }
-  // UART_OFF — restart sequence'in parçası olabilir, cn606UartOn'u false yapmıyoruz
-  // Status JSON'dan gelen uart:false yetkili kaynak
-  if (str.includes('FRAME[')) {
-    const hexPart = str.split(']:')[1];
-    if (hexPart) cn606OnFrame(hexPart);
-  }
-});
-
-// ── Power estimate from compressor frequency ──
-// ── Soğutma Çevrimi Hesapları (R410A, MUZ-FA35VA) ──
-// Sensör pozisyonları kalibre edildikçe doğruluk artacak
-// Referans: ASHRAE, Mitsubishi servis notları
-
-function cn606CalcSH() {
-  const s = cn606.sensors;
-  if (s.suction === null) return null;
-
-  const mode = ac.mode || 'COOL';
-  if (mode === 'HEAT') {
-    // Isıtma modunda dış serpantin = evaporatör
-    // SH = emış sıcaklığı - dış serpantin yüzey sıcaklığı
-    if (s.condenser !== null) return +(s.suction - s.condenser).toFixed(1);
-    return null;
-  }
-  // Soğutma modunda: evaporatör iç ünitede, biz iç serpantin sıcaklığını bilmiyoruz
-  // Yaklaşım: T_evap_sat ≈ T_dış - 20°C (R410A soğutma için tipik delta)
-  const outdoorRef = (s.outdoor !== null) ? s.outdoor : ac.outTemp;
-  if (outdoorRef !== null) return +(s.suction - (outdoorRef - 20)).toFixed(1);
-  return null;
-}
-
-function cn606CalcSC() {
-  const s = cn606.sensors;
-  const mode = ac.mode || 'COOL';
-
-  if (mode === 'HEAT') {
-    // Isıtma modunda: iç serpantin = kondenser. CN606 iç serpantin sıcaklığını bilmiyor.
-    // Yaklaşım: SC ≈ sıcak gaz - sıvı hat
-    if (s.hotGas !== null && s.liquid !== null) return +(s.hotGas - s.liquid).toFixed(1);
-    return null;
-  }
-  // Soğutma modunda: SC = T_sat_cond - T_liquid
-  // T_sat_cond ≈ T_dış_ortam + 15°C (R410A soğutma, tipik kondenser delta)
-  const outdoorRef = (s.outdoor !== null) ? s.outdoor : ac.outTemp;
-  if (outdoorRef !== null && s.liquid !== null) return +(outdoorRef + 15 - s.liquid).toFixed(1);
-  return null;
-}
-
-function cn606SystemHealth() {
-  const s = cn606.sensors;
-  const freq = ac.compFreq;
-  const lastF = cn606.lastFrame;
-
-  // Veri yok
-  if (!lastF) return { label: '--', sub: 'Veri yok', color: '#9ca3af', score: 0 };
-
-  const dataAge = (Date.now() - lastF.getTime()) / 1000;
-  if (dataAge > 300) return { label: 'Eski Veri', sub: Math.round(dataAge/60)+'dk önce', color: '#9ca3af', score: 0 };
-
-  // Kompresör kapalı
-  if (!ac.operating || freq === 0 || freq === null) {
-    return { label: 'Standby', sub: 'Kompresör çalışmıyor', color: '#6b7280', score: -1 };
-  }
-
-  const problems = [], warnings = [];
-
-  // Deşarj sıcaklığı kontrolü (R410A: normal <110°C, uyarı 110-120°C, alarm >120°C)
-  if (s.dischargeH !== null) {
-    if (s.dischargeH > 120) problems.push(`Deşarj ${s.dischargeH.toFixed(0)}°C (krit.)`);
-    else if (s.dischargeH > 110) warnings.push(`Deşarj ${s.dischargeH.toFixed(0)}°C (yüksek)`);
-  }
-
-  // IPM sıcaklığı kontrolü
-  if (s.ipm !== null) {
-    if (s.ipm > 95) problems.push(`İPM ${s.ipm.toFixed(0)}°C (krit.)`);
-    else if (s.ipm > 80) warnings.push(`İPM ${s.ipm.toFixed(0)}°C (sıcak)`);
-  }
-
-  // SH/SC: yaklaşık formül, sağlık skoru için kullanılmıyor (doğrudan ölçüm yok)
-  const sh = cn606CalcSH();
-  const sc = cn606CalcSC();
-
-  if (problems.length > 0) {
-    return { label: 'SORUN', sub: problems[0], color: '#c62828', score: 1 };
-  }
-  if (warnings.length > 0) {
-    return { label: 'Uyarı', sub: warnings.join(' · '), color: '#e65100', score: 2 };
-  }
-  const shStr = sh !== null ? `~${sh.toFixed(1)}°` : '--';
-  const scStr = sc !== null ? `~${sc.toFixed(1)}°` : '--';
-  return { label: 'Normal', sub: `${freq}Hz · SH${shStr} SC${scStr}`, color: '#2e7d32', score: 3 };
-}
-
-function estimatePower(hz) {
-  if (!hz || hz <= 0) return 0;
-  // MUZ-FA35VA rated: 1090W @ 50Hz, max 1575W @ ~80Hz
-  if (hz <= 50) return Math.round(hz * 21.8);
-  return Math.round(1090 + (hz - 50) * 16.2);
-}
 
 function calcFeelsLike(T, RH) {
   if (T == null || RH == null || isNaN(T) || isNaN(RH)) return null;
@@ -1478,7 +813,7 @@ function triggerClean(){
 }
 
 // ── Render ──
-function renderAll(){renderPower();renderTemp();renderMode();renderFan();renderVane();renderWVane();renderFunctions();renderInfo();renderOutdoor();renderCN606();renderSystem();}
+function renderAll(){renderPower();renderTemp();renderMode();renderFan();renderVane();renderWVane();renderFunctions();renderInfo();renderSystem();}
 
 const MCOL ={HEAT:'heat',COOL:'cool',DRY:'dry',FAN:'fan',AUTO:'auto'};
 const MNAME={HEAT:'Isıtma',COOL:'Soğutma',DRY:'Kurutma',FAN:'Fan',AUTO:'Otomatik'};
@@ -1498,9 +833,6 @@ function renderTemp(){
   const fmtT=(v,min=-90)=>(v!=null&&v>min)?v.toFixed(1)+'°':'--°';
   document.getElementById('setVal').innerHTML=ac.setTemp.toFixed(1)+'<sub>°</sub>';
   document.getElementById('roomTxt').textContent='Oda: '+(ac.roomTemp!=null&&ac.roomTemp>-90?ac.roomTemp.toFixed(1)+'°':'--°');
-  // outdoor: prefer CN606 outdoor sensor, fallback CN105
-  const outT = (cn606.sensors.outdoor !== null) ? cn606.sensors.outdoor : ac.outTemp;
-  document.getElementById('outVal').textContent = fmtT(outT, -50);
   const h=ac.humidity;
   document.getElementById('humVal').textContent=(h!=null&&h>=0)?h.toFixed(0)+'%':'--%';
   const fl=calcFeelsLike(ac.sensorTemp, ac.humidity);
@@ -1557,171 +889,6 @@ function renderInfo(){
   ev.textContent=hasErr?('E'+ac.errCode.toString(16).toUpperCase().padStart(2,'0')):'Normal';
   eb.className='ibox '+(hasErr?'err-bad':'err-ok');
 }
-function renderOutdoor(){
-  const fmtT=(v,min=-90)=>(v!=null&&v>min)?v.toFixed(1):'--';
-
-  // Compressor card
-  const cc=document.getElementById('dcComp');
-  const cs=document.getElementById('dcCompSub');
-  const cb=document.getElementById('dcCompBadge');
-  if(cc){cc.textContent=ac.operating?'Çalışıyor':'Beklemede';cc.style.color=ac.operating?'var(--heat)':'var(--sub)';}
-  if(cs)cs.textContent=ac.operating?'Kompresör devrede':'Kompresör beklemede';
-  if(cb){cb.textContent=ac.operating?'Aktif':'Pasif';cb.className='dc-badge '+(ac.operating?'active':'off');}
-
-  // Room from CN105
-  const rte=document.getElementById('dcRoomTemp');
-  if(rte)rte.innerHTML=fmtT(ac.roomTemp)+'<sup>°</sup>';
-
-  // Humidity
-  const h=ac.humidity;
-  const humEl=document.getElementById('dcHumidity');
-  if(humEl)humEl.innerHTML=(h!=null&&h>=0)?h.toFixed(1)+'<span class="dcu">%</span>':'--<span class="dcu">%</span>';
-  const humSub=document.getElementById('dcHumSub');
-  if(humSub)humSub.textContent=(h!=null&&h>=0&&ac.sensorTemp!=null)?'DHT11 · '+ac.sensorTemp.toFixed(1)+'°C':'DHT11 GPIO14';
-
-  // Frequency
-  const cf=ac.compFreq;
-  const freqEl=document.getElementById('dcFreq');
-  const freqSub=document.getElementById('dcFreqSub');
-  if(freqEl)freqEl.innerHTML=(cf!=null)?cf+'<span class="dcu"> Hz</span>':'--<span class="dcu"> Hz</span>';
-  if(freqSub)freqSub.textContent=(cf!=null)?(cf===0?'Kompresör durdu':'Çalışıyor · CN105'):'Kompresör hızı';
-
-  // Power estimate
-  const pw = (cf!=null&&cf>0&&ac.operating) ? estimatePower(cf) : 0;
-  const pcEl = document.getElementById('pcVal');
-  const pcSub = document.getElementById('pcSub');
-  const barEl = document.getElementById('powerBar');
-  if(pcEl) pcEl.textContent = pw>0 ? pw : (ac.operating?'...':'--');
-  if(pcSub) pcSub.textContent = pw>0 ? `${cf}Hz · ~${(pw/1000).toFixed(2)}kW tahmini` : (ac.operating?'Frekans alınıyor...':'Kompresör kapalı');
-  if(barEl) barEl.style.width = pw>0 ? Math.min(100,(pw/1575*100)).toFixed(1)+'%' : '0%';
-
-  // Indoor fan speed (from CN105 set value + operating state)
-  const fanMap = {AUTO:'Oto',QUIET:'Sessiz','1':'Kd.1','2':'Kd.2','3':'Kd.3','4':'Kd.4'};
-  const fanLbl = ac.fan ? (fanMap[ac.fan]||ac.fan) : '--';
-  const fanEl  = document.getElementById('dcFanIn');
-  const fanSub = document.getElementById('dcFanInSub');
-  if(fanEl) fanEl.textContent = ac.operating ? fanLbl : (ac.power ? fanLbl : '--');
-  if(fanSub) fanSub.textContent = ac.operating ? 'CN105 · çalışıyor' : (ac.power ? 'CN105 · bekleme' : 'Kapalı');
-
-  // Feels like
-  const fl = calcFeelsLike(ac.sensorTemp, ac.humidity);
-  const flEl = document.getElementById('dcFeels');
-  if(flEl) flEl.innerHTML = fl!=null ? fl.toFixed(1)+'<sup>°</sup>' : '--<sup>°</sup>';
-}
-
-function renderCN606(){
-  const fmtS = (v) => v!==null ? v.toFixed(1)+'<sup>°</sup>' : '--<sup>°</sup>';
-  const s = cn606.sensors;
-
-  const set = (id, val) => {
-    const el = document.getElementById(id);
-    if(el) el.innerHTML = fmtS(val);
-  };
-  const setSub = (id, txt) => { const el=document.getElementById(id); if(el) el.textContent=txt; };
-
-  set('scSuction',   s.suction);
-  set('scDischarge', s.dischargeH !== null ? s.dischargeH : s.discharge);
-  set('scHotGas',    s.hotGas);
-  set('scHead',      s.head !== null ? s.head : s.discharge);
-  set('scCondenser', s.condenser);
-  set('scLiquid',    s.liquid);
-  set('scIPM',       s.ipm);
-
-  // Sub-labels göster (hangi frame tipinden geldi)
-  if (cn606.lastFtype) {
-    setSub('scSuctionSub',  `EvaTemp · reg 0x0E · CN606 [${cn606.lastFtype}]`);
-    setSub('scDischargeSub',`DiscTemp · reg 0x01 · CN606 [${cn606.lastFtype}]`);
-    setSub('scHotGasSub',   `FinTemp · reg 0x08 · CN606 [${cn606.lastFtype}]`);
-    setSub('scLiquidSub',   `OutHEXtemp · reg 0x0D · CN606 [${cn606.lastFtype}]`);
-    setSub('scCondenserSub',`DefTemp · reg 0x07 · CN606 [${cn606.lastFtype}]`);
-    setSub('scHeadSub',     `TgtDiscTemp · reg 0x02 · CN606 [${cn606.lastFtype}]`);
-    setSub('scIPMSub',      `PCboardTemp · reg 0x09 · CN606 [${cn606.lastFtype}]`);
-  }
-
-  // Outdoor fan speed
-  const foEl  = document.getElementById('scFanOut');
-  const foSub = document.getElementById('scFanOutSub');
-  if(foEl) {
-    if(s.fanStep !== null) {
-      foEl.textContent = CN606_FAN_LABELS[s.fanStep] || `Kd.${s.fanStep}`;
-      if(foSub) foSub.textContent = `Kademe ${s.fanStep} · CN606`;
-    } else {
-      foEl.textContent = '--';
-    }
-  }
-
-  // Indoor fan speed (from CN105)
-  const fiEl  = document.getElementById('scFanIn');
-  const fiSub = document.getElementById('scFanInSub');
-  if(fiEl) {
-    const fanMap = {AUTO:'Oto',QUIET:'Sessiz','1':'Kd.1','2':'Kd.2','3':'Kd.3','4':'Kd.4'};
-    fiEl.textContent = ac.fan ? (fanMap[ac.fan]||ac.fan) : '--';
-    if(fiSub) fiSub.textContent = 'CN105 · iç ünite';
-  }
-
-  // Outdoor temp: cn606 öncelikli, CN105 fallback
-  const outEl = document.getElementById('scOutdoor');
-  const outSub = document.getElementById('scOutdoorSub');
-  if(s.outdoor !== null) {
-    if(outEl) outEl.innerHTML = fmtS(s.outdoor);
-    if(outSub) outSub.textContent = `CN606 [${cn606.lastFtype||'?'}] · kalibre edilecek`;
-  } else if(ac.outTemp !== null && ac.outTemp > -50) {
-    if(outEl) outEl.innerHTML = fmtS(ac.outTemp);
-    if(outSub) outSub.textContent = 'CN105 · yaklaşık';
-  }
-
-  // CN606 connection + last frame indicator
-  const dot = document.getElementById('cn606Dot');
-  const txt = document.getElementById('cn606ConnTxt');
-  if(cn606.connected && cn606.lastFrame) {
-    const secAgo = Math.round((Date.now() - cn606.lastFrame.getTime()) / 1000);
-    const age = secAgo < 60 ? `${secAgo}s önce` : secAgo < 3600 ? `${Math.round(secAgo/60)}dk önce` : `${Math.round(secAgo/3600)}sa önce`;
-    // Verilerin yaşına göre renk: <5dk yeşil, <30dk sarı, daha eski gri
-    if(dot) dot.className = secAgo < 300 ? 'cn606-dot ok' : secAgo < 1800 ? 'cn606-dot warn' : 'cn606-dot';
-    if(txt) {
-      const isStandby = !ac.operating && ac.power === false;
-      const label = isStandby ? 'Standby' : (secAgo < 300 ? 'Canlı' : 'Eski veri');
-      txt.textContent = `${label} · ${age}`;
-    }
-  }
-
-  // SH / SC / Sistem Sağlığı
-  const sh = cn606CalcSH();
-  const sc = cn606CalcSC();
-  const health = cn606SystemHealth();
-
-  const shEl  = document.getElementById('dcSH');
-  const shSub = document.getElementById('dcSHSub');
-  if(shEl) shEl.innerHTML = sh !== null ? '~'+sh.toFixed(1)+'<sup>°</sup>' : '--<sup>°</sup>';
-  if(shSub) {
-    shSub.textContent = sh !== null ? 'Yaklaşık (5-20°C normal)' : 'Emış + evap referansı';
-    shSub.style.color = '';
-  }
-
-  const scEl  = document.getElementById('dcSC');
-  const scSub = document.getElementById('dcSCSub');
-  if(scEl) scEl.innerHTML = sc !== null ? '~'+sc.toFixed(1)+'<sup>°</sup>' : '--<sup>°</sup>';
-  if(scSub) {
-    scSub.textContent = sc !== null ? 'Yaklaşık (5-15°C normal)' : 'Kondenser - sıvı hat';
-    scSub.style.color = '';
-  }
-
-  const hEl  = document.getElementById('dcHealth');
-  const hSub = document.getElementById('dcHealthSub');
-  const hCard = document.getElementById('dcHealthCard');
-  if(hEl) { hEl.textContent = health.label; hEl.style.color = health.color; }
-  if(hSub) hSub.textContent = health.sub;
-  if(hCard) hCard.style.borderLeft = health.score > 0 ? `3px solid ${health.color}` : '';
-
-  // Last frame time
-  const timeEl = document.getElementById('cn606LastTime');
-  if(timeEl && cn606.lastFrame) {
-    const secAgo = Math.round((Date.now() - cn606.lastFrame.getTime()) / 1000);
-    const cached = secAgo > 60;
-    timeEl.textContent = (cached ? 'Önbellek · ' : 'Son frame · ') + cn606.lastFrame.toLocaleTimeString('tr-TR');
-    timeEl.style.color = cached ? '#f59e0b' : '';
-  }
-}
 function renderSystem(){
   if(ac.uptime!=null){
     const s=ac.uptime;
@@ -1738,7 +905,7 @@ function setConn(s,l){
 function setStatus(t){document.getElementById('statusBar').textContent=t;}
 
 // ── Tabs ──
-const TAB_IDS=['tabControl','tabOutdoor','tabSchedule','tabSystem'];
+const TAB_IDS=['tabControl','tabSchedule','tabSystem'];
 function switchTab(i){
   TAB_IDS.forEach((id,j)=>{
     document.getElementById(id).classList.toggle('active',j===i);
@@ -1752,6 +919,13 @@ let schedules=JSON.parse(localStorage.getItem('klimaSchedules')||'[]');
 let selDays=new Set();
 let selPower='on';
 let lastFired={};
+
+// Pzt-Cmt 07:00 kapat schedule — bir kez otomatik ekle
+if(!localStorage.getItem('defaultSchedsAdded')){
+  schedules.push({days:[1,2,3,4,5,6],time:'07:00',power:'off',mode:'COOL',temp:22,active:true});
+  saveScheds();
+  localStorage.setItem('defaultSchedsAdded','1');
+}
 
 function saveScheds(){localStorage.setItem('klimaSchedules',JSON.stringify(schedules));}
 
@@ -1855,21 +1029,8 @@ function runSchedules(){
 }
 setInterval(runSchedules,30000);
 
-// ── Periodic CN606 staleness check ──
-setInterval(() => {
-  if (cn606.lastFrame) {
-    const secAgo = Math.round((Date.now() - cn606.lastFrame.getTime()) / 1000);
-    const dot = document.getElementById('cn606Dot');
-    const txt = document.getElementById('cn606ConnTxt');
-    const timeEl = document.getElementById('cn606LastTime');
-    if (dot) dot.className = secAgo < 60 ? 'cn606-dot ok' : secAgo < 300 ? 'cn606-dot' : 'cn606-dot err';
-    if (txt) txt.textContent = secAgo < 60 ? `${secAgo}s önce` : secAgo < 3600 ? `${Math.floor(secAgo/60)}dk ${secAgo%60}s önce` : `${Math.floor(secAgo/3600)}sa önce`;
-    if (timeEl) timeEl.textContent = 'Son frame: ' + cn606.lastFrame.toLocaleTimeString('tr-TR') + ' · ' + secAgo + 's önce';
-  }
-}, 5000);
 
 // ── Init ──
-cn606LoadLocal(); // localStorage'dan son bilinen sensör değerlerini yükle
 renderAll();
 renderSchedules();
 updateArc();
