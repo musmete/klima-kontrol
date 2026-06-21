@@ -920,14 +920,18 @@ let selDays=new Set();
 let selPower='on';
 let lastFired={};
 
-// Pzt-Cmt 07:00 kapat schedule — bir kez otomatik ekle
-if(!localStorage.getItem('defaultSchedsAdded')){
-  schedules.push({days:[1,2,3,4,5,6],time:'07:00',power:'off',mode:'COOL',temp:22,active:true});
-  saveScheds();
-  localStorage.setItem('defaultSchedsAdded','1');
-}
-
 function saveScheds(){localStorage.setItem('klimaSchedules',JSON.stringify(schedules));}
+
+// Duplicate temizle: aynı time+power+days kombinasyonu varsa birini bırak
+(function dedup(){
+  const seen=new Set();
+  schedules=schedules.filter(s=>{
+    const k=s.time+'_'+s.power+'_'+(s.days||[]).slice().sort().join(',');
+    if(seen.has(k))return false;
+    seen.add(k);return true;
+  });
+  saveScheds();
+})();
 
 function renderSchedules(){
   const list=document.getElementById('schedList');
