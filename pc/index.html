@@ -55,14 +55,19 @@ let token = hash.get("t") || query.get("t");
 try { if (token) localStorage.setItem("wolToken", token); else token = localStorage.getItem("wolToken"); } catch (e) {}
 const auto = hash.has("go") || query.has("go");
 
-let pending = false, timer = null;
+let pending = false, timer = null, autoDone = false;
 function state(cls, text) { $btn.className = cls; $msg.textContent = text; }
 
 const client = mqtt.connect(BROKER, { clientId: "wol-" + Math.random().toString(16).slice(2, 10), reconnectPeriod: 2000 });
 client.on("connect", () => {
   $conn.className = "on"; $conn.textContent = "bağlı";
   client.subscribe(DEV + "/log");
-  if (auto && !pending) send();
+  // Otomatik gönderim sayfa başına yalnızca bir kez; arka plandaki sekme yeniden bağlanınca tekrar göndermesin.
+  if (auto && !autoDone) {
+    autoDone = true;
+    history.replaceState(null, "", location.pathname + (token ? "?t=" + encodeURIComponent(token) : ""));
+    send();
+  }
 });
 client.on("close", () => { $conn.className = ""; $conn.textContent = "bağlantı yok"; });
 client.on("message", (t, p) => {
