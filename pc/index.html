@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PC Aç">
+<meta name="theme-color" content="#0b0d12">
+<link rel="apple-touch-icon" href="icon.png">
+<title>PC Aç</title>
+<style>
+  :root { --bg:#0b0d12; --fg:#e8eaf0; --dim:#7a8194; --acc:#3b82f6; --ok:#22c55e; --err:#ef4444; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg);
+    font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  body { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:28px;
+    padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom); user-select:none; }
+  h1 { margin:0; font-size:20px; font-weight:600; letter-spacing:.3px; }
+  #btn { width:200px; height:200px; border-radius:50%; border:3px solid #2a3040; background:#151925;
+    color:var(--fg); display:grid; place-items:center; cursor:pointer; transition:.2s; }
+  #btn:active { transform:scale(.95); }
+  #btn svg { width:84px; height:84px; stroke:currentColor; }
+  #btn.busy { border-color:var(--acc); color:var(--acc); animation:pulse 1s infinite; }
+  #btn.ok   { border-color:var(--ok);  color:var(--ok); }
+  #btn.err  { border-color:var(--err); color:var(--err); }
+  @keyframes pulse { 50% { box-shadow:0 0 0 14px rgba(59,130,246,.15); } }
+  #msg { min-height:1.4em; color:var(--dim); text-align:center; }
+  #conn { position:fixed; top:calc(env(safe-area-inset-top) + 12px); right:16px; font-size:12px; color:var(--dim); }
+  #conn::before { content:""; display:inline-block; width:8px; height:8px; border-radius:50%;
+    background:var(--dim); margin-right:6px; }
+  #conn.on::before { background:var(--ok); }
+</style>
+</head>
+<body>
+<div id="conn">bağlanıyor</div>
+<h1>Masaüstü PC</h1>
+<button id="btn" aria-label="PC'yi aç">
+  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>
+</button>
+<div id="msg">Açmak için dokun</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.10.1/mqtt.min.js"></script>
+<script>
+const BROKER = "wss://broker.emqx.io:8084/mqtt";
+const DEV    = "mits/D48AFC9E85C8";
+const $btn = document.getElementById("btn"), $msg = document.getElementById("msg"), $conn = document.getElementById("conn");
+
+// Anahtar URL'deki #t=... ile gelir (sunucuya gitmez), bir kez gelince saklanır.
+const hash = new URLSearchParams(location.hash.slice(1));
+let token = hash.get("t");
+try { if (token) localStorage.setItem("wolToken", token); else token = localStorage.getItem("wolToken"); } catch (e) {}
+const auto = hash.has("go") || new URLSearchParams(location.search).has("go");
+
+let pending = false, timer = null;
+function state(cls, text) { $btn.className = cls; $msg.textContent = text; }
+
+const client = mqtt.connect(BROKER, { clientId: "wol-" + Math.random().toString(16).slice(2, 10), reconnectPeriod: 2000 });
+client.on("connect", () => {
+  $conn.className = "on"; $conn.textContent = "bağlı";
+  client.subscribe(DEV + "/log");
+  if (auto && !pending) send();
+});
+client.on("close", () => { $conn.className = ""; $conn.textContent = "bağlantı yok"; });
+client.on("message", (t, p) => {
+  const s = p.toString();
+  if (!pending) return;
+  if (s.includes("WOL sent"))      { done(); state("ok", "Paket gönderildi ✓  PC açılıyor"); }
+  else if (s.includes("WOL bad"))  { done(); state("err", "Anahtar yanlış"); }
+});
+
+function done() { pending = false; clearTimeout(timer); }
+
+function send() {
+  if (!token) {
+    token = prompt("WoL anahtarı:");
+    if (!token) return;
+    try { localStorage.setItem("wolToken", token); } catch (e) {}
+  }
+  if (!client.connected) { state("err", "Broker'a bağlı değil, tekrar dene"); return; }
+  pending = true;
+  state("busy", "Gönderiliyor…");
+  client.publish(DEV + "/cmd", JSON.stringify({ wol: token }));
+  timer = setTimeout(() => { if (pending) { pending = false; state("err", "Klima ESP'si cevap vermedi"); } }, 8000);
+}
+
+$btn.addEventListener("click", send);
+</script>
+</body>
+</html>
