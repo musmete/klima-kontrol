@@ -48,10 +48,12 @@ const DEV    = "mits/D48AFC9E85C8";
 const $btn = document.getElementById("btn"), $msg = document.getElementById("msg"), $conn = document.getElementById("conn");
 
 // Anahtar URL'deki #t=... ile gelir (sunucuya gitmez), bir kez gelince saklanır.
+// Kestirmeler '#' işaretini %23'e çevirebiliyor; bu yüzden ?t=...&go da kabul edilir.
 const hash = new URLSearchParams(location.hash.slice(1));
-let token = hash.get("t");
+const query = new URLSearchParams(location.search);
+let token = hash.get("t") || query.get("t");
 try { if (token) localStorage.setItem("wolToken", token); else token = localStorage.getItem("wolToken"); } catch (e) {}
-const auto = hash.has("go") || new URLSearchParams(location.search).has("go");
+const auto = hash.has("go") || query.has("go");
 
 let pending = false, timer = null;
 function state(cls, text) { $btn.className = cls; $msg.textContent = text; }
